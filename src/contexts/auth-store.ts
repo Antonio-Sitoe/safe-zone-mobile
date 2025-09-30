@@ -83,7 +83,6 @@ export const useAuth = create<AuthStore>()(
           return
         }
 
-        // Check if session is expired
         const now = new Date()
         const expiresAt = new Date(session.expiresAt)
 
