@@ -7,7 +7,7 @@ export async function signUp(data: SignUpSubmitData) {
 }
 export async function signIn(data: { email: string; password: string }) {
   const response = await api.post('/auth/sign-in/email', data)
-  return response.data
+  return response.data //
 }
 
 export async function verifyEmail(email: string) {
