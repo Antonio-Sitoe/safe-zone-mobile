@@ -1,61 +1,57 @@
-// OnboardingScreen.tsx
-import React, { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   View,
   Text,
   TouchableOpacity,
   useWindowDimensions,
   StyleSheet,
-  Platform,
-  AccessibilityInfo,
 } from 'react-native'
 import PagerView from 'react-native-pager-view'
 import Animated, {
   useSharedValue,
   useDerivedValue,
   useAnimatedStyle,
-  withSpring,
-  withDelay,
+  withTiming,
   interpolate,
+  Easing,
 } from 'react-native-reanimated'
+import Shape1 from '@/assets/shapes1.svg'
+import Shape2 from '@/assets/shapes2.svg'
 import { RFValue } from 'react-native-responsive-fontsize'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 
-// Substitua pelos seus assets importados
 import Onboard1 from '@/assets/slide/slide-1.svg'
 import Onboard2 from '@/assets/slide/slide-2.svg'
 import Onboard3 from '@/assets/slide/slide-3.svg'
 
-const ONBOARDING_KEY = '@has_completed_onboarding'
+const ONBOARDING_KEY = 'has_completed_onboarding'
+const AUTO_PLAY_INTERVAL = 4000
 
 const onboardingData = [
   {
     id: 1,
-    title: 'Aqui estão algumas dicas essenciais para aproveitar ao máximo',
+    title: 'Aqui Estão Algumas Dicas Essenciais Para Aproveitar Ao Máximo',
     subtitle:
-      'Personalize quem pode ver sua localização para garantir sua privacidade.',
+      'Personalize Quem Pode Ver Sua Localização Para Garantir Sua Privacidade.',
     icon: Onboard1,
   },
   {
     id: 2,
     title: 'Navegação Consciente',
     subtitle:
-      'Antes de sair, confira as áreas de risco e escolha rotas seguras.',
+      'Antes De Sair, Confira As Áreas De Risco E Escolha Rotas Seguras.',
     icon: Onboard2,
   },
   {
     id: 3,
-    title: 'Botão de Emergência Rápida',
+    title: 'Botão De Emergência Rápida',
     subtitle:
-      'Configure o botão de emergência para ligar rapidamente para contatos específicos ou a polícia.',
+      'Configure O Botão De Emergência Para Ligar Rapidamente Para Contatos Específicos Ou A Polícia.',
     icon: Onboard3,
   },
 ]
-
-const AnimatedTouchableOpacity =
-  Animated.createAnimatedComponent(TouchableOpacity)
 
 export default function OnboardingScreen() {
   const { width, height } = useWindowDimensions()
@@ -65,21 +61,17 @@ export default function OnboardingScreen() {
     boolean | null
   >(null)
 
-  // shared value used as page progress (0..n-1 with fractional offsets)
   const progress = useSharedValue(0)
 
-  // read onboarding flag on mount
+  const autoplayRef = useRef<NodeJS.Timeout | any>(null)
+
   useEffect(() => {
     let mounted = true
     ;(async () => {
       try {
         const value = await AsyncStorage.getItem(ONBOARDING_KEY)
         if (!mounted) return
-        setHasCompletedOnboarding(value === 'true')
-        // accessibility focus when screen loads
-        if (Platform.OS === 'android') {
-          AccessibilityInfo.setAccessibilityFocus?.(0)
-        }
+        setHasCompletedOnboarding(value === 'false')
       } catch (err) {
         console.warn('Erro ao ler onboarding flag', err)
         setHasCompletedOnboarding(false)
@@ -87,104 +79,116 @@ export default function OnboardingScreen() {
     })()
     return () => {
       mounted = false
+      clearAutoplay()
     }
   }, [])
 
-  // helper to mark onboarding completed
   const completeOnboarding = async () => {
     try {
       await AsyncStorage.setItem(ONBOARDING_KEY, 'true')
       setHasCompletedOnboarding(true)
+      clearAutoplay()
     } catch (err) {
       console.warn('Erro ao salvar flag onboarding', err)
     }
   }
 
-  // Next button pressed
-  const handleNext = () => {
-    if (currentPage < onboardingData.length - 1) {
-      const next = currentPage + 1
-      pagerRef.current?.setPage(next)
-      // update local state and progress
-      setCurrentPage(next)
-      progress.value = withSpring(next, { damping: 18, stiffness: 150 })
-    } else {
-      handleFinish()
+  const clearAutoplay = () => {
+    if (autoplayRef.current) {
+      clearInterval(autoplayRef.current)
+      autoplayRef.current = null
     }
   }
 
-  const handleFinish = async () => {
-    await completeOnboarding()
-    // navega para a homepage (ajuste se precisar)
-    router.replace('/')
+  const startAutoplay = () => {
+    clearAutoplay()
+    autoplayRef.current = setInterval(() => {
+      setCurrentPage((prev) => {
+        const next = prev < onboardingData.length - 1 ? prev + 1 : prev
+        if (next !== prev) {
+          pagerRef.current?.setPage(next)
+          progress.value = withTiming(next, {
+            duration: 400,
+            easing: Easing.out(Easing.cubic),
+          })
+        } else {
+          clearAutoplay()
+        }
+        return next
+      })
+    }, AUTO_PLAY_INTERVAL)
   }
 
-  const handleCreateCompany = async () => {
+  useEffect(() => {
+    if (hasCompletedOnboarding === false) {
+      startAutoplay()
+    }
+    return () => {
+      clearAutoplay()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasCompletedOnboarding])
+
+  const handleCreateAccount = async () => {
+    clearAutoplay()
     await completeOnboarding()
-    router.push('/(auth)/sign-up')
+    setTimeout(() => {
+      router.push('/(auth)/sign-up')
+    }, 50)
   }
 
-  const handleJoinCompany = async () => {
+  const handleJoinAccount = async () => {
+    clearAutoplay()
     await completeOnboarding()
-    router.push('/')
+    setTimeout(() => {
+      router.push('/(auth)/sign-in')
+    }, 50)
   }
 
-  // Pager callbacks
+  useEffect(() => {
+    return () => {
+      clearAutoplay()
+      progress.value = 0
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const onPageScroll = (e: any) => {
     const { position, offset } = e.nativeEvent
-    // position + offset representa o índice com fração
-    progress.value = withSpring(position + offset, {
-      damping: 18,
-      stiffness: 150,
-    })
+    progress.value = position + offset
   }
 
   const onPageSelected = (e: any) => {
     const page = e.nativeEvent.position
     setCurrentPage(page)
-    progress.value = withSpring(page, { damping: 18, stiffness: 150 })
-  }
-
-  // If we've determined the user already finished onboarding, redirect immediately
-  if (hasCompletedOnboarding === true) {
-    // se já completou, redirecionamos (replace) imediatamente
-    router.replace('/')
-    return null
-  }
-
-  // Still loading the flag
-  if (hasCompletedOnboarding === null) {
-    // pode retornar um loader simples
-    return (
-      <View style={styles.loadingContainer}>
-        <StatusBar style="dark" />
-        <Text>Carregando...</Text>
-      </View>
-    )
-  }
-
-  // Animated title component (adapta opacidade/translate/scale baseado no progresso)
-  const AnimatedTitle = ({ index }: { index: number }) => {
-    const distance = useDerivedValue(() => {
-      return Math.abs(progress.value - index)
+    progress.value = withTiming(page, {
+      duration: 400,
+      easing: Easing.out(Easing.cubic),
     })
+    if (page < onboardingData.length - 1) {
+      startAutoplay()
+    } else {
+      clearAutoplay()
+    }
+  }
+
+  const AnimatedTitle = ({ index }: { index: number }) => {
+    const distance = useDerivedValue(() => Math.abs(progress.value - index))
     const style = useAnimatedStyle(() => {
-      const opacity = interpolate(distance.value, [0, 1], [1, 0.45])
-      const translateY = interpolate(distance.value, [0, 1], [0, 18])
-      const scale = interpolate(distance.value, [0, 1], [1, 0.97])
-      return {
-        opacity,
-        transform: [{ translateY }, { scale }],
-      }
+      const opacity = interpolate(distance.value, [0, 0.8], [1, 0])
+      return { opacity }
     })
     return (
       <Animated.Text
         style={[
           style,
           {
-            fontSize: RFValue(22, height),
+            fontSize: RFValue(20, height),
             color: '#0f172a',
-            lineHeight: RFValue(30, height),
+            lineHeight: RFValue(28, height),
+            textAlign: 'center',
+            fontWeight: '700',
+            paddingHorizontal: 16,
           },
         ]}
         accessibilityRole="header"
@@ -197,12 +201,8 @@ export default function OnboardingScreen() {
   const AnimatedSubtitle = ({ index }: { index: number }) => {
     const distance = useDerivedValue(() => Math.abs(progress.value - index))
     const style = useAnimatedStyle(() => {
-      const opacity = interpolate(distance.value, [0, 1], [1, 0.5])
-      const translateY = interpolate(distance.value, [0, 1], [0, 10])
-      return {
-        opacity,
-        transform: [{ translateY }],
-      }
+      const opacity = interpolate(distance.value, [0, 0.8], [1, 0])
+      return { opacity }
     })
     return (
       <Animated.Text
@@ -210,9 +210,11 @@ export default function OnboardingScreen() {
           style,
           {
             fontSize: RFValue(14, height),
-            color: '#0f172a',
-            marginTop: 12,
+            color: '#64748b',
+            marginBottom: 15,
             lineHeight: RFValue(20, height),
+            textAlign: 'center',
+            paddingHorizontal: 24,
           },
         ]}
       >
@@ -221,88 +223,57 @@ export default function OnboardingScreen() {
     )
   }
 
-  // Illustration component: escala animada ao entrar
   const IllustrationComponent = ({ index }: { index: number }) => {
     const Icon = onboardingData[index].icon
-    const scale = useSharedValue(0)
-    useEffect(() => {
-      scale.value = 0
-      scale.value = withDelay(
-        250,
-        withSpring(1, { damping: 9, stiffness: 120 })
-      )
-    }, [index])
+    const distance = useDerivedValue(() => Math.abs(progress.value - index))
 
     const style = useAnimatedStyle(() => {
-      return {
-        transform: [{ scale: scale.value }],
-      }
+      const opacity = interpolate(distance.value, [0, 0.5], [1, 0.3])
+      return { opacity }
     })
 
-    // dimensiona o SVG conforme largura da tela
-    const iconSize = Math.min(width * 0.52, 320)
+    const iconSize = Math.min(width * 0.65, 360)
 
     return (
       <Animated.View
         style={[style, { alignItems: 'center', justifyContent: 'center' }]}
       >
         <View
+          className="items-center justify-center"
           style={{
             width: iconSize,
             height: iconSize,
-            borderRadius: iconSize / 2,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: '#fff',
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.08,
-            shadowRadius: 12,
-            elevation: 6,
+            backgroundColor: 'transparent',
           }}
         >
-          {/* Ajuste width/height do SVG conforme necessário */}
-          <Icon width={iconSize * 0.9} height={iconSize * 0.9} />
+          <Icon width={iconSize * 0.96} height={iconSize * 0.96} />
         </View>
       </Animated.View>
     )
   }
 
-  // Indicator dot: fica preenchido azul quando ativo e com contorno quando inativo
   const Indicator = ({ index }: { index: number }) => {
-    const derived = useDerivedValue(() => {
-      const d = Math.abs(progress.value - index)
-      return d
-    })
+    const derived = useDerivedValue(() => Math.abs(progress.value - index))
     const style = useAnimatedStyle(() => {
       const d = derived.value
-      // quanto menor distance -> mais "ativo"
-      const scale = interpolate(d, [0, 1.2], [1.15, 0.88])
-      const opacity = interpolate(d, [0, 1.2], [1, 0.5])
-      const isActive = d < 0.4
+      const isActive = d < 0.5
       return {
-        transform: [{ scale }],
-        opacity,
-        width: 16,
-        height: 16,
-        borderRadius: 8,
-        marginHorizontal: 6,
-        backgroundColor: isActive ? '#12224a' : 'transparent',
-        borderWidth: 2,
-        borderColor: '#12224a',
+        width: isActive ? 24 : 8,
+        height: 8,
+        borderRadius: 4,
+        marginHorizontal: 4,
+        marginBottom: 14,
+        backgroundColor: isActive ? '#12224a' : '#cbd5e1',
+        opacity: interpolate(d, [0, 1], [1, 0.6]),
       }
-    }, [])
+    })
     return <Animated.View style={style} />
   }
 
   const PageIndicator = () => (
     <View
-      style={{
-        flexDirection: 'row',
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginTop: 6,
-      }}
+      className="flex-row items-center justify-center"
+      style={styles.indicatorContainer}
     >
       {onboardingData.map((_, i) => (
         <Indicator key={i} index={i} />
@@ -313,117 +284,76 @@ export default function OnboardingScreen() {
   return (
     <View style={styles.container}>
       <StatusBar style="dark" backgroundColor="#ffffff" />
+
       <PagerView
         ref={pagerRef}
         style={{ flex: 1 }}
         initialPage={0}
         onPageScroll={onPageScroll}
         onPageSelected={onPageSelected}
+        offscreenPageLimit={2}
       >
         {onboardingData.map((item, index) => (
           <View key={item.id} style={styles.page}>
-            {/* top colored card */}
-            <View
-              style={[
-                styles.topCard,
-                {
-                  minHeight: height * 0.32,
-                  paddingHorizontal: 24,
-                  paddingTop: 28,
-                  paddingBottom: 20,
-                },
-              ]}
-            >
-              <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                <AnimatedTitle index={index} />
-                <AnimatedSubtitle index={index} />
-              </View>
+            <View style={styles.topTextWrap}>
+              <AnimatedTitle index={index} />
             </View>
 
-            {/* main content */}
-            <View
-              style={{
-                flex: 1,
-                paddingHorizontal: 20,
-                justifyContent: 'space-between',
-              }}
-            >
-              <View
+            <View style={styles.illustrationWrap}>
+              <IllustrationComponent index={index} />
+            </View>
+            <View>
+              <Shape2
                 style={{
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  paddingVertical: height * 0.03,
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 153,
+                  transform: [{ rotate: '180deg' }],
                 }}
-              >
-                <IllustrationComponent index={index} />
-              </View>
+              />
+              <Shape2
+                style={{ position: 'absolute', bottom: 300, right: 155 }}
+              />
+              <Shape2
+                style={{ position: 'absolute', bottom: -300, right: 155 }}
+              />
+            </View>
+            <View style={styles.bottomWrap}>
+              <AnimatedSubtitle index={index} />
 
               <PageIndicator />
 
-              <View
-                style={{
-                  paddingBottom: height * 0.04,
-                  width: width * 0.9,
-                  alignSelf: 'center',
-                }}
-              >
-                {index === onboardingData.length - 1 ? (
-                  <>
-                    <AnimatedTouchableOpacity
-                      onPress={handleCreateCompany}
+              {index === onboardingData.length - 1 && (
+                <View style={styles.lastButtonsWrap}>
+                  <TouchableOpacity
+                    onPress={handleCreateAccount}
+                    className="rounded-full items-center justify-center"
+                    style={[
+                      styles.primaryButton,
+                      { paddingVertical: Math.max(14, height * 0.018) },
+                    ]}
+                  >
+                    <Text
                       style={[
-                        styles.primaryButton,
-                        { paddingVertical: height * 0.018 },
+                        styles.primaryButtonText,
+                        { fontSize: RFValue(16, height) },
                       ]}
                     >
-                      <Text
-                        style={[
-                          styles.primaryButtonText,
-                          { fontSize: RFValue(16, height) },
-                        ]}
-                      >
-                        Crie a sua Empresa
-                      </Text>
-                    </AnimatedTouchableOpacity>
+                      Crie a sua conta
+                    </Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity
-                      onPress={handleJoinCompany}
-                      style={{ paddingVertical: height * 0.014 }}
-                    >
-                      <Text
-                        style={{
-                          textAlign: 'center',
-                          color: '#0f172a',
-                          fontWeight: '700',
-                        }}
-                      >
-                        Entrar numa Empresa existente
-                      </Text>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <AnimatedTouchableOpacity
-                      onPress={handleNext}
-                      style={[
-                        styles.nextButton,
-                        { paddingVertical: height * 0.018 },
-                      ]}
-                    >
-                      <Text
-                        style={{
-                          color: '#fff',
-                          fontWeight: '700',
-                          fontSize: RFValue(15, height),
-                        }}
-                      >
-                        Continuar
-                      </Text>
-                    </AnimatedTouchableOpacity>
-                    <View style={{ height: height * 0.02 }} />
-                  </>
-                )}
-              </View>
+                  <TouchableOpacity
+                    onPress={handleJoinAccount}
+                    className="items-center"
+                    style={{ paddingVertical: Math.max(12, height * 0.014) }}
+                  >
+                    <Text style={styles.secondaryText}>
+                      Entrar numa Conta existente
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         ))}
@@ -435,33 +365,59 @@ export default function OnboardingScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#ffffff' },
   loadingContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  page: { flex: 1 },
-  topCard: {
-    backgroundColor: '#E6FDF0', // card claro (ajuste conforme design)
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.06,
-    shadowRadius: 14,
-    elevation: 8,
+  page: {
+    flex: 1,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+  },
+  topTextWrap: {
+    width: '100%',
+    paddingTop: 40,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  illustrationWrap: {
+    flex: 1,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bottomWrap: {
+    width: '100%',
+    alignItems: 'center',
+    paddingBottom: 40,
+  },
+  indicatorContainer: {
+    marginTop: 24,
   },
   primaryButton: {
-    backgroundColor: '#F5E0A0',
+    backgroundColor: '#1F346C',
     borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
+    paddingHorizontal: 32,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    marginBottom: 12,
+    width: '85%',
+    alignSelf: 'center',
   },
   primaryButtonText: {
-    color: '#0f172a',
+    color: '#fff',
     fontWeight: '800',
+    textAlign: 'center',
   },
-  nextButton: {
-    backgroundColor: '#12224a',
-    borderRadius: 999,
+  secondaryText: {
+    textAlign: 'center',
+    color: '#475569',
+    fontWeight: '600',
+    fontSize: RFValue(14, 800),
+  },
+  lastButtonsWrap: {
+    marginTop: 24,
+    width: '100%',
     alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 6,
   },
 })
