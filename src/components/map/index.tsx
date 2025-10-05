@@ -148,7 +148,7 @@ export default function MapComponent({
         onMessage={handleMessage}
       />
 
-      <View className="flex-row justify-between p-3 mb-3 bg-white">
+      <View className="flex-row justify-between p-3 pb-12 bg-white">
         <TouchableOpacity
           className="flex-1 bg-app-primary mx-2 py-4 rounded-lg items-center"
           onPress={handleCancel}

@@ -78,7 +78,7 @@ export default function SupportCommunityScreen() {
   // }
 
   return (
-    <View className="flex-1 pt-6 bg-gray-50">
+    <View className="flex-1 pt-6 pb-5 bg-gray-50">
       <View className="flex-1">
         <View>
           <SecondaryHeader

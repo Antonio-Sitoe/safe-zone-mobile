@@ -210,7 +210,7 @@ const SignIn = () => {
                   </Text>
                 </Button>
 
-                <Link href="/(auth)/sign-up" asChild>
+                <Link href="/home" asChild>
                   <TouchableOpacity className="flex-row gap-2 items-start justify-center">
                     <Text className="text-sm font-montserrat text-gray-700 text-center mb-2">
                       Não Tem Conta?

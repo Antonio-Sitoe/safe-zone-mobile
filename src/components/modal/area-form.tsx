@@ -80,7 +80,7 @@ export function CreateArea({
     try {
       setLoadingMedia(true)
       const result: any = await DocumentPicker.getDocumentAsync({
-        type: ['image/*', 'video/*'],
+        type: ['image/*'],
         multiple: true,
         copyToCacheDirectory: true,
       })
@@ -279,7 +279,7 @@ export function CreateArea({
             className="flex-row items-center mb-4"
             activeOpacity={0.7}
           >
-            <Text className=" text-base mr-2">Fotos ou vídeos</Text>
+            <Text className=" text-base mr-2">Adicionar Fotos </Text>
             <Camera size={18} color="#64748b" strokeWidth={1.5} />
           </TouchableOpacity>
           {loadingMedia && (
@@ -318,7 +318,7 @@ export function CreateArea({
           </ScrollView>
         </ScrollView>
 
-        <View className="flex-row px-4 pb-6 pt-4 space-x-4 border-t border-gray-200">
+        <View className="flex-row px-4 pb-6 pt-4  space-x-4 border-t border-gray-200">
           <TouchableOpacity
             onPress={handleSave}
             className="flex-1 bg-app-primary mx-2 py-4 rounded-lg items-center"
