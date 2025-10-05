@@ -22,6 +22,7 @@ import {
 } from '@expo-google-fonts/montserrat'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuth } from '@/contexts/auth-store'
+// import { initFirebase } from '@/lib/firebase'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -52,6 +53,8 @@ export default function RootLayout() {
     'Montserrat-Bold': Montserrat_700Bold,
   })
 
+  // initFirebase()
+
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync()
@@ -69,6 +72,7 @@ export default function RootLayout() {
 
   return (
     <GluestackUIProvider mode="dark">
+      <StatusBar backgroundColor="#fff" />
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <ThemeProvider
