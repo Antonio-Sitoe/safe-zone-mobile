@@ -1,9 +1,11 @@
 import './globals.css'
+
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
 } from '@react-navigation/native'
+
 import * as SplashScreen from 'expo-splash-screen'
 import { Stack } from 'expo-router'
 import { useFonts } from 'expo-font'

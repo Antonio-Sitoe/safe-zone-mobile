@@ -1,3 +1,11 @@
+import Animated, {
+  useSharedValue,
+  useDerivedValue,
+  useAnimatedStyle,
+  withTiming,
+  interpolate,
+  Easing,
+} from 'react-native-reanimated'
 import { useEffect, useRef, useState } from 'react'
 import {
   View,
@@ -7,14 +15,6 @@ import {
   StyleSheet,
 } from 'react-native'
 import PagerView from 'react-native-pager-view'
-import Animated, {
-  useSharedValue,
-  useDerivedValue,
-  useAnimatedStyle,
-  withTiming,
-  interpolate,
-  Easing,
-} from 'react-native-reanimated'
 import Shape1 from '@/assets/shapes1.svg'
 import Shape2 from '@/assets/shapes2.svg'
 import { RFValue } from 'react-native-responsive-fontsize'
@@ -53,7 +53,7 @@ const onboardingData = [
   },
 ]
 
-export default function OnboardingScreen() {
+export function OnboardingScreen() {
   const { width, height } = useWindowDimensions()
   const pagerRef = useRef<PagerView | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(0)
