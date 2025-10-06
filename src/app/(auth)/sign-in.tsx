@@ -58,6 +58,7 @@ const SignIn = () => {
 
       // Store auth data in Zustand store
       login(user, session)
+      router.push('/home')
     } catch (error) {
       console.log(error)
       const message =
@@ -70,7 +71,7 @@ const SignIn = () => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={{ flex: 1 }} className="relative">
       <TouchableWithoutFeedback
         onPress={() => Keyboard.dismiss()}
         className="relative"
@@ -82,7 +83,6 @@ const SignIn = () => {
         >
           <Shape1 style={{ position: 'absolute', bottom: 0, right: 0 }} />
           <Shape2 style={{ position: 'absolute', bottom: 120, left: 0 }} />
-
           <StatusBar style="auto" backgroundColor="#fff" animated={true} />
           <ScrollView
             contentContainerStyle={{ flexGrow: 1, paddingBottom: 10 }}
@@ -210,7 +210,7 @@ const SignIn = () => {
                   </Text>
                 </Button>
 
-                <Link href="/(auth)/sign-up" asChild>
+                <Link href="/home" asChild>
                   <TouchableOpacity className="flex-row gap-2 items-start justify-center">
                     <Text className="text-sm font-montserrat text-gray-700 text-center mb-2">
                       Não Tem Conta?
