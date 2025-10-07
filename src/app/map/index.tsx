@@ -1,12 +1,12 @@
 import MapComponent from '@/components/map'
 import { useLocalSearchParams } from 'expo-router'
-import { View } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function MapScreen() {
   const params = useLocalSearchParams()
   return (
-    <View className="flex-1">
+    <SafeAreaView className="flex-1">
       <MapComponent variant={params.variant as 'safe' | 'danger'} />
-    </View>
+    </SafeAreaView>
   )
 }
