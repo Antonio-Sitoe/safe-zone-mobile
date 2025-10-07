@@ -4,7 +4,7 @@ import BackgroundLogoSvg from '@/assets/logo.svg'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useRouter } from 'expo-router'
 
-export function Home() {
+export default function Home() {
   const router = useRouter()
   return (
     <SafeAreaView className="flex-1 bg-app-primary p-6">

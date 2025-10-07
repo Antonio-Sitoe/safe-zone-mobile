@@ -61,7 +61,7 @@ export default function RootLayout() {
     const checkOnboardingStatus = async () => {
       const seen = await AsyncStorage.getItem('has_completed_onboarding')
       console.log({ seen })
-      setHasSeenOnboarding(seen !== 'true')
+      setHasSeenOnboarding(seen === 'true')
     }
     checkOnboardingStatus()
   }, [])
@@ -98,12 +98,12 @@ export default function RootLayout() {
                 />
               ) : (
                 <>
-                  <Stack.Protected guard={isAuthenticated}>
+                  {/* <Stack.Protected guard={isAuthenticated}>
                     <Stack.Screen
                       name="(tabs)"
                       options={{ headerShown: false }}
                     />
-                  </Stack.Protected>
+                  </Stack.Protected> */}
                   <Stack.Protected guard={!isAuthenticated}>
                     <Stack.Screen
                       name="(auth)"

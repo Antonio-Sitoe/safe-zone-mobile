@@ -53,7 +53,7 @@ const onboardingData = [
   },
 ]
 
-export function OnboardingScreen() {
+export default function OnboardingScreen() {
   const { width, height } = useWindowDimensions()
   const pagerRef = useRef<PagerView | null>(null)
   const [currentPage, setCurrentPage] = useState<number>(0)

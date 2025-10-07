@@ -2,7 +2,7 @@ import { View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { BottomNavigation } from '@/components/menu'
 import { Header } from '@/components/header'
-import { CardsGrid } from './cards/grid'
+import { CardsGrid } from '@/components/cards/grid'
 
 export default function Home() {
   return (
