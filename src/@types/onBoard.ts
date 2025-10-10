@@ -1,6 +1,6 @@
 export interface OnboardingSlide {
-  id: string
-  title: string
-  description: string
-  image: string
+	id: string;
+	title: string;
+	description: string;
+	image: string;
 }

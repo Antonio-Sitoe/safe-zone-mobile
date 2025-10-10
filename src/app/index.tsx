@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router'
 
 export default function Home() {
   const router = useRouter()
+
   return (
     <SafeAreaView className="flex-1 bg-app-primary p-6">
       <View className="justify-start mt-20 items-center">
@@ -15,7 +16,7 @@ export default function Home() {
         <View className="flex-col gap-8 w-full">
           <Button
             className="bg-white h-14"
-            onPress={() => router.push('/sign-in')}
+            onPress={() => router.push('/(auth)/sign-in')}
           >
             <Text className="text-secondary-foreground font-sans text-sm dark:text-secondary-foreground">
               Faça Login
@@ -23,7 +24,7 @@ export default function Home() {
           </Button>
           <Button
             className="bg-white h-14"
-            onPress={() => router.push('/sign-up')}
+            onPress={() => router.push('/(auth)/sign-up')}
           >
             <Text className="text-secondary-foreground font-sans text-sm dark:text-secondary-foreground">
               Criar Conta

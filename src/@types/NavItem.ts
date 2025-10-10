@@ -1,5 +1,5 @@
 export interface NavItem {
-  icon: any
-  label: string
-  active?: boolean
+	icon: any;
+	label: string;
+	active?: boolean;
 }

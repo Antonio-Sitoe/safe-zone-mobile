@@ -1,4 +1,4 @@
 export interface DangerousLocation {
-  name: string
-  dangerLevel: number
+	name: string;
+	dangerLevel: number;
 }

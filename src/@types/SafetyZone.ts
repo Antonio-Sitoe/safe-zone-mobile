@@ -1,10 +1,10 @@
 export interface SafeLocation {
-  name: string
-  safetyLevel: number
+	name: string;
+	safetyLevel: number;
 }
 
 export interface SafeZoneHeaderProps {
-  onBackPress?: () => void
-  onMenuPress?: () => void
-  title: string
+	onBackPress?: () => void;
+	onMenuPress?: () => void;
+	title: string;
 }

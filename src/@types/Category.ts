@@ -1,5 +1,5 @@
 export interface CategoryCardProps {
-  name: string
-  count: number
-  onPress?: () => void
+	name: string;
+	count: number;
+	onPress?: () => void;
 }
