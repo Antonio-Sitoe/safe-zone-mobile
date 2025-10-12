@@ -1,136 +1,157 @@
-import { useState } from "react";
-import { View, Text, SafeAreaView, ScrollView, Pressable, ActivityIndicator } from "react-native";
-import { ChevronLeft, UserPlus, Users } from "lucide-react-native";
-import { CategoryCard } from "@/components/categoryCard";
-import { ButtonSecondary } from "@/components/ui/button/button";
-import { AddContactModal } from "@/components/modal/addContact";
-import { CreateGroupModal } from "@/components/modal/addGroup";
-import { SuccessModal } from "@/components/modal/notification";
-import { SecondaryHeader } from "@/components/secondary-header";
-import { useRouter } from "expo-router";
+import { useState } from 'react'
+import { View, Text, ScrollView, ActivityIndicator } from 'react-native'
+import { UserPlus, Users } from 'lucide-react-native'
+import { CategoryCard } from '@/components/categoryCard'
+import { ButtonSecondary } from '@/components/ui/button/button'
+import { AddContactModal } from '@/components/modal/addContact'
+import { CreateGroupModal } from '@/components/modal/addGroup'
+import { SuccessModal } from '@/components/modal/notification'
+import { SecondaryHeader } from '@/components/secondary-header'
+import { useRouter } from 'expo-router'
+import { useCreateGroupMutation } from '@/react-query/community/community/groupMutations'
+import { Contact } from '@/@types/Contact'
+import {
+  useGetGroupsDataQuery,
+  useGetGroupsQuery,
+} from '@/react-query/community/community/groupQuery'
+import { useCreateContactMutation } from '@/react-query/community/community/contactMutation'
 
 export default function SupportCommunityScreen() {
-	const router = useRouter();
-	const [showAddContactModal, setShowAddContactModal] = useState(false);
-	const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
-	const [showSuccessModal, setShowSuccessModal] = useState(false);
-	const [successMessage, setSuccessMessage] = useState({
-		title: "",
-		message: "",
-	});
+  const router = useRouter()
+  const [showAddContactModal, setShowAddContactModal] = useState(false)
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState({
+    title: '',
+    message: '',
+  })
 
-	const familyCount = 3;
-	const friendCount = 3;
-	const workCount = 3;
-	const groupCount = 3;
+  const userId = '507cf8bc-b637-4a8f-a8d1-38d58244f0c5'
+  const { data: groupsData, isLoading: groupsLoading } =
+    useGetGroupsQuery(userId)
+  const { data: groups, isLoading } = useGetGroupsDataQuery(userId)
 
-	const hasGroups = groupCount > 0;
+  const createGroupMutation = useCreateGroupMutation()
+  const createContactMutation = useCreateContactMutation()
 
-	const handleAddContact = async (name: string, phone: string, category: string) => {
-		try {
-			setSuccessMessage({
-				title: "Contato Adicionado Com Sucesso.",
-				message: "O Novo Contato Foi Incluído Em Sua Lista Com Êxito",
-			});
-			setShowSuccessModal(true);
-		} catch (error) {
-			console.error("Failed to add contact:", error);
-		}
-	};
+  const handleAddContact = async (
+    name: string,
+    phone: string,
+    groupId: string
+  ) => {
+    createContactMutation.mutate(
+      {
+        groupId,
+        name,
+        phone,
+      },
+      {
+        onSuccess: () => {
+          setSuccessMessage({
+            title: 'Contato Adicionado Com Sucesso.',
+            message: 'O Novo Contato Foi Incluído Em Sua Lista Com Êxito',
+          })
+          setShowSuccessModal(true)
+        },
+        onError: (error: any) => {
+          setSuccessMessage({
+            title: 'Erro',
+            message: error?.message || 'Erro ao conatcto grupo',
+          })
+          setShowSuccessModal(true)
+        },
+      }
+    )
+  }
 
-	const handleCreateGroup = async (name: string, memberIds: string[]) => {
-		try {
-			setSuccessMessage({
-				title: "Grupo Criado Com Sucesso.",
-				message: "O Novo Grupo Foi Criado Em Sua Lista Com Êxito",
-			});
-			setShowSuccessModal(true);
-		} catch (error) {
-			console.error("Failed to create group:", error);
-		}
-	};
+  const handleCreateGroup = (name: string, members: Contact[]) => {
+    createGroupMutation.mutate(
+      { userId, name, members },
+      {
+        onSuccess: () => {
+          setSuccessMessage({
+            title: 'Grupo Criado!',
+            message: 'O novo grupo foi criado com sucesso.',
+          })
+          setShowSuccessModal(true)
+        },
+        onError: (error: any) => {
+          setSuccessMessage({
+            title: 'Erro',
+            message: error?.message || 'Erro ao criar grupo',
+          })
+          setShowSuccessModal(true)
+        },
+      }
+    )
+  }
 
-	// if (loading) {
-	//   return (
-	//     <View className="flex-1 bg-gray-50 items-center justify-center">
-	//       <ActivityIndicator size="large" color="#2B4170" />
-	//     </View>
-	//   );
-	// }
+  return (
+    <View className="flex-1 pt-6 pb-5 bg-gray-50">
+      <SecondaryHeader
+        title="Comunidade"
+        onBackPress={() => router.back()}
+        onMenuPress={() => {}}
+      />
 
-	// if (error) {
-	//   return (
-	//     <View className="flex-1 bg-gray-50 items-center justify-center px-6">
-	//       <Text className="text-red-500 text-center">{error}</Text>
-	//     </View>
-	//   );
-	// }
+      <ScrollView className="flex-1 px-6 pt-6">
+        {groupsLoading ? (
+          <View className="flex-1 items-center justify-center py-10">
+            <ActivityIndicator size="large" color="#2B4170" />
+          </View>
+        ) : groupsData?.data.length === 0 ? (
+          <Text className="text-center text-gray-500 text-base">
+            Sem grupos
+          </Text>
+        ) : (
+          groupsData?.data.map((group: any) => (
+            <CategoryCard
+              key={group.id}
+              name={group.name}
+              count={group.contactsTotal}
+            />
+          ))
+        )}
+      </ScrollView>
 
-	return (
-		<View className="flex-1 pt-6 pb-5 bg-gray-50">
-			<View className="flex-1">
-				<View>
-					<SecondaryHeader
-						title="Comunidade"
-						onBackPress={() => router.back()}
-						onMenuPress={() => {}}
-					/>
-				</View>
+      <View className="px-6 pb-6 space-y-3">
+        <ButtonSecondary
+          variant="secondary"
+          onPress={() => setShowAddContactModal(true)}
+          icon={<UserPlus size={20} color="#FFFFFF" />}
+        >
+          Adicionar contacto
+        </ButtonSecondary>
 
-				<ScrollView className="flex-1 px-6 pt-6">
-					<CategoryCard name="Família" count={familyCount} />
+        <ButtonSecondary
+          variant="secondary"
+          onPress={() => setShowCreateGroupModal(true)}
+          icon={<Users size={20} color="#FFFFFF" />}
+        >
+          Criar grupo
+        </ButtonSecondary>
+      </View>
 
-					<CategoryCard name="Amigo" count={friendCount} />
+      <AddContactModal
+        visible={showAddContactModal}
+        onClose={() => setShowAddContactModal(false)}
+        data={groups}
+        onSubmit={handleAddContact}
+      />
 
-					<CategoryCard name="Trabalho" count={workCount} />
+      <CreateGroupModal
+        visible={showCreateGroupModal}
+        onClose={() => setShowCreateGroupModal(false)}
+        onSubmit={handleCreateGroup}
+        availableContacts={null}
+      />
 
-					<CategoryCard name="Grupo" count={groupCount} />
-				</ScrollView>
-
-				<View className="px-6 pb-6 space-y-3">
-					{false ? (
-						<View className="py-8">
-							<Text className="text-center text-gray-500 text-base">Sem grupo</Text>
-						</View>
-					) : (
-						<ButtonSecondary
-							variant="secondary"
-							onPress={() => setShowAddContactModal(true)}
-							icon={<UserPlus size={20} color="#FFFFFF" />}
-						>
-							Adicionar contacto
-						</ButtonSecondary>
-					)}
-
-					<ButtonSecondary
-						variant="secondary"
-						onPress={() => setShowCreateGroupModal(true)}
-						icon={<Users size={20} color="#FFFFFF" />}
-					>
-						Criar grupo
-					</ButtonSecondary>
-				</View>
-			</View>
-
-			<AddContactModal
-				visible={showAddContactModal}
-				onClose={() => setShowAddContactModal(false)}
-				onSubmit={handleAddContact}
-			/>
-
-			<CreateGroupModal
-				visible={showCreateGroupModal}
-				onClose={() => setShowCreateGroupModal(false)}
-				onSubmit={handleCreateGroup}
-				availableContacts={null}
-			/>
-
-			<SuccessModal
-				visible={showSuccessModal}
-				onClose={() => setShowSuccessModal(false)}
-				title={successMessage.title}
-				message={successMessage.message}
-			/>
-		</View>
-	);
+      <SuccessModal
+        visible={showSuccessModal}
+        onClose={() => setShowSuccessModal(false)}
+        title={successMessage.title}
+        message={successMessage.message}
+      />
+    </View>
+  )
 }
