@@ -4,6 +4,7 @@ import * as MapLibreGL from '@maplibre/maplibre-react-native'
 import { useRef, useState, useEffect, useId } from 'react'
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native'
 import type { Feature } from 'geojson'
+import { Zone } from '@/@types/Zone'
 
 type LocationState = {
   lat: number
@@ -13,8 +14,12 @@ type LocationState = {
 
 export default function MapComponent({
   variant,
+  zones = [],
+  isLoading = false,
 }: {
   variant: 'safe' | 'danger'
+  zones?: Zone[]
+  isLoading?: boolean
 }) {
   const userMarkerId = useId()
   const selectedMarkerId = useId()
@@ -169,6 +174,26 @@ export default function MapComponent({
             <MarkerSvg width={24} height={36} />
           </MapLibreGL.PointAnnotation>
         )}
+
+        {/* Render existing zones */}
+        {zones.map((zone) => (
+          <MapLibreGL.PointAnnotation
+            key={zone.id}
+            id={`zone-${zone.id}`}
+            coordinate={[zone.coordinates.longitude, zone.coordinates.latitude]}
+          >
+            <View
+              style={{
+                width: 20,
+                height: 20,
+                borderRadius: 10,
+                backgroundColor: zone.type === 'SAFE' ? '#4CAF50' : '#F44336',
+                borderWidth: 2,
+                borderColor: 'white',
+              }}
+            />
+          </MapLibreGL.PointAnnotation>
+        ))}
       </MapLibreGL.MapView>
 
       <View className="flex-row justify-between p-3 pb-12 bg-white">
