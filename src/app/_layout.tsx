@@ -66,10 +66,10 @@ export default function RootLayout() {
     checkOnboardingStatus()
   }, [])
 
-  // Autenticação
   useEffect(() => {
     checkAuthStatus()
-  }, [checkAuthStatus])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Splash
   useEffect(() => {
@@ -98,12 +98,6 @@ export default function RootLayout() {
                 />
               ) : (
                 <>
-                  {/* <Stack.Protected guard={isAuthenticated}>
-                    <Stack.Screen
-                      name="(tabs)"
-                      options={{ headerShown: false }}
-                    />
-                  </Stack.Protected> */}
                   <Stack.Protected guard={!isAuthenticated}>
                     <Stack.Screen
                       name="(auth)"
