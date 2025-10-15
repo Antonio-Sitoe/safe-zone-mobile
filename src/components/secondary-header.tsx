@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, TouchableOpacity } from "react-native";
 import { ChevronLeft, Menu } from "lucide-react-native";
-import { SafeZoneHeaderProps } from "@/@types/SafetyZone";
+import type { SafeZoneHeaderProps } from "@/@types/SafetyZone";
 
 export function SecondaryHeader({ onBackPress, onMenuPress, title }: SafeZoneHeaderProps) {
 	return (

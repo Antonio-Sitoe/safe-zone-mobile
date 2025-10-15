@@ -1,12 +1,12 @@
 "use client";
 import React from "react";
 import { createModal } from "@gluestack-ui/core/modal/creator";
-import { Pressable, View, ScrollView, ViewStyle } from "react-native";
+import { Pressable, View, ScrollView, type ViewStyle } from "react-native";
 import {
 	Motion,
 	AnimatePresence,
 	createMotionAnimatedComponent,
-	MotionComponentProps,
+	type MotionComponentProps,
 } from "@legendapp/motion";
 import { tva, withStyleContext, useStyleContext } from "@gluestack-ui/utils/nativewind-utils";
 import { cssInterop } from "nativewind";

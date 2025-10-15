@@ -1,5 +1,5 @@
 import { View, Text, Image, StyleSheet, Dimensions } from "react-native";
-import { OnboardingSlide as SlideType } from "@/@types/onBoard";
+import type { OnboardingSlide as SlideType } from "@/@types/onBoard";
 
 const { width } = Dimensions.get("window");
 

@@ -13,7 +13,7 @@ import {
 import { X, Flag, Calendar, Clock, Camera, Play } from "lucide-react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import * as DocumentPicker from "expo-document-picker";
-import { CreateModalProps, SafeZoneData } from "@/@types/area";
+import type { CreateModalProps, SafeZoneData } from "@/@types/area";
 
 export function CreateArea({ visible, onClose, onSave, variant, location }: CreateModalProps) {
 	const today = new Date();

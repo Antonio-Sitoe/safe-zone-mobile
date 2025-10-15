@@ -1,4 +1,4 @@
-import { OnboardingSlide } from "@/@types/onBoard";
+import type { OnboardingSlide } from "@/@types/onBoard";
 
 export const ONBOARDING_SLIDES: OnboardingSlide[] = [
 	{

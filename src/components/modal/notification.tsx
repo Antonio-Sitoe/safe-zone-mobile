@@ -1,7 +1,7 @@
 import { View, Text, Modal, Button } from "react-native";
 import { Check } from "lucide-react-native";
 import { ButtonSecondary } from "../ui/button/button";
-import { SuccessModalProps } from "@/@types/area";
+import type { SuccessModalProps } from "@/@types/area";
 
 export const SuccessModal = ({
 	visible,

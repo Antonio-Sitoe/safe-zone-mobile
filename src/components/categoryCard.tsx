@@ -1,6 +1,6 @@
 import { View, Text, Pressable } from "react-native";
 import { Users } from "lucide-react-native";
-import { CategoryCardProps } from "@/@types/Category";
+import type { CategoryCardProps } from "@/@types/Category";
 
 export const CategoryCard = ({ name, count, onPress }: CategoryCardProps) => {
 	return (

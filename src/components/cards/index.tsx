@@ -1,5 +1,5 @@
 import { TouchableOpacity, Text, View } from "react-native";
-import { SafetyCardProps } from "@/@types/SafetyCard";
+import type { SafetyCardProps } from "@/@types/SafetyCard";
 
 export function SafetyCard({ title, icon: Icon, onPress }: SafetyCardProps) {
 	return (

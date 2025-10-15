@@ -9,7 +9,6 @@ import Animated, {
 import { useEffect, useRef, useState } from "react";
 import { View, Text, TouchableOpacity, useWindowDimensions, StyleSheet } from "react-native";
 import PagerView from "react-native-pager-view";
-import Shape1 from "@/assets/shapes1.svg";
 import Shape2 from "@/assets/shapes2.svg";
 import { RFValue } from "react-native-responsive-fontsize";
 import AsyncStorage from "@react-native-async-storage/async-storage";

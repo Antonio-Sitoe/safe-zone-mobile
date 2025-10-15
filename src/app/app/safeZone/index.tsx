@@ -7,7 +7,7 @@ import { BottomNavigation } from "@/components/menu";
 import { SecondaryHeader } from "@/components/secondary-header";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { CreateArea } from "@/components/modal/area-form";
-import { SafeLocation } from "@/@types/SafetyZone";
+import type { SafeLocation } from "@/@types/SafetyZone";
 
 export default function SafeZone() {
 	const router = useRouter();
@@ -26,10 +26,6 @@ export default function SafeZone() {
 
 	const handleLocationPress = (locationName: string) => {
 		console.log(`Location pressed: ${locationName}`);
-	};
-
-	const handleAddPress = () => {
-		setModalVisible(true);
 	};
 
 	const handleSaveLocation = (data: any) => {

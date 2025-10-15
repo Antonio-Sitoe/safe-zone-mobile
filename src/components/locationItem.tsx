@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity } from "react-native";
 import { MapPin } from "lucide-react-native";
-import { LocationItemProps } from "@/@types/location";
+import type { LocationItemProps } from "@/@types/location";
 
 export function LocationItem({ name, level, onPress, variant }: LocationItemProps) {
 	return (

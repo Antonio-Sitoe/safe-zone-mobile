@@ -1,5 +1,5 @@
 import { Text, Pressable } from "react-native";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface ButtonProps {
 	children: ReactNode;

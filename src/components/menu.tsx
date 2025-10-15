@@ -1,6 +1,6 @@
 import { View, TouchableOpacity, Text } from "react-native";
 import { Home, Search, User, Settings } from "lucide-react-native";
-import { NavItem } from "@/@types/NavItem";
+import type { NavItem } from "@/@types/NavItem";
 
 const navItems: NavItem[] = [
 	{ icon: Home, label: "Home", active: true },
