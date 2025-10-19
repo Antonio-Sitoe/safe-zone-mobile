@@ -1,109 +1,90 @@
-import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
+import * as SecureStore from 'expo-secure-store'
+import { Platform } from 'react-native'
+
+const isWeb = Platform.OS === 'web'
 
 export interface User {
-	id: string;
-	email: string;
-	name: string;
-	emailVerified: boolean;
-	createdAt: string;
-	updatedAt: string;
+  id: string
+  email: string
+  name: string
+  emailVerified: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Session {
-	id: string;
-	token: string;
-	expiresAt: string;
+  id: string
+  token: string
+  expiresAt: string
 }
 
-export interface AuthState {
-	user: User | null;
-	session: Session | null;
-	isAuthenticated: boolean;
-	isLoading: boolean;
-	error: string | null;
+type AuthState = {
+  // Core auth state
+  isLoggedIn: boolean
+  hasCompletedOnboarding: boolean
+  _hasHydrated: boolean
+
+  // User data
+  user: User | null
+  session: Session | null
+
+  // Actions
+  login: (user: User, session: Session) => void
+  logout: () => void
+  completeOnboarding: () => void
+  setHasHydrated: (value: boolean) => void
 }
 
-export interface AuthActions {
-	setUser: (user: User) => void;
-	setSession: (session: Session) => void;
-	login: (user: User, session: Session) => void;
-	logout: () => void;
-	setLoading: (loading: boolean) => void;
-	setError: (error: string | null) => void;
-	clearError: () => void;
-	checkAuthStatus: () => Promise<void>;
-}
+export const useAuthStore = create(
+  persist<AuthState>(
+    (set) => ({
+      // Initial state
+      isLoggedIn: false,
+      hasCompletedOnboarding: false,
+      _hasHydrated: false,
+      user: null,
+      session: null,
 
-export type AuthStore = AuthState & AuthActions;
+      // Actions
+      login: (user: User, session: Session) =>
+        set({
+          user,
+          session,
+          isLoggedIn: true,
+        }),
 
-export const useAuth = create<AuthStore>()(
-	persist(
-		(set, get) => ({
-			// Initial state
-			user: null,
-			session: null,
-			isAuthenticated: false,
-			isLoading: false,
-			error: null,
+      logout: () =>
+        set({
+          user: null,
+          session: null,
+          isLoggedIn: false,
+        }),
 
-			// Actions
-			setUser: (user: User) => set({ user }),
+      completeOnboarding: () =>
+        set({
+          hasCompletedOnboarding: true,
+        }),
 
-			setSession: (session: Session) => set({ session }),
-
-			login: (user: User, session: Session) =>
-				set({
-					user,
-					session,
-					isAuthenticated: true,
-					error: null,
-				}),
-
-			logout: () =>
-				set({
-					user: null,
-					session: null,
-					isAuthenticated: false,
-					error: null,
-				}),
-
-			setLoading: (isLoading: boolean) => set({ isLoading }),
-
-			setError: (error: string | null) => set({ error }),
-
-			clearError: () => set({ error: null }),
-
-			checkAuthStatus: async () => {
-				const { session } = get();
-
-				if (!session) {
-					set({ isAuthenticated: false, user: null });
-					return;
-				}
-
-				const now = new Date();
-				const expiresAt = new Date(session.expiresAt);
-
-				if (now >= expiresAt) {
-					// Session expired, logout
-					get().logout();
-					return;
-				}
-
-				// Session is valid
-				set({ isAuthenticated: true });
-			},
-		}),
-		{
-			name: "auth-storage",
-			storage: createJSONStorage(() => AsyncStorage),
-			partialize: (state) => ({
-				user: state.user,
-				session: state.session,
-				isAuthenticated: state.isAuthenticated,
-			}),
-		}
-	)
-);
+      setHasHydrated: (value: boolean) =>
+        set({
+          _hasHydrated: value,
+        }),
+    }),
+    {
+      name: 'auth-store',
+      storage: isWeb
+        ? createJSONStorage(() => localStorage)
+        : createJSONStorage(() => ({
+            setItem: (key: string, value: string) =>
+              SecureStore.setItemAsync(key, value),
+            getItem: (key: string) => SecureStore.getItemAsync(key),
+            removeItem: (key: string) => SecureStore.deleteItemAsync(key),
+          })),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
+    }
+  )
+)

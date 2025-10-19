@@ -22,8 +22,7 @@ import {
   Montserrat_700Bold,
 } from '@expo-google-fonts/montserrat'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import AsyncStorage from '@react-native-async-storage/async-storage'
-import { useAuth } from '@/contexts/auth-store'
+import { useAuthStore } from '@/contexts/auth-store'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,10 +43,14 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme()
-  const { checkAuthStatus, isAuthenticated } = useAuth()
+  const { isLoggedIn, hasCompletedOnboarding, _hasHydrated } = useAuthStore()
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(
     null
   )
+  console.log('isLoggedIn', isLoggedIn)
+  console.log('hasCompletedOnboarding', hasCompletedOnboarding)
+  console.log('_hasHydrated', _hasHydrated)
+
   const [loaded] = useFonts({
     Inter: Inter_400Regular,
     'Inter-Bold': Inter_700Bold,
@@ -58,27 +61,18 @@ export default function RootLayout() {
   })
 
   useEffect(() => {
-    const checkOnboardingStatus = async () => {
-      const seen = await AsyncStorage.getItem('has_completed_onboarding')
-      console.log({ seen })
-      setHasSeenOnboarding(seen === 'true')
-    }
-    checkOnboardingStatus()
-  }, [])
-
-  useEffect(() => {
-    checkAuthStatus()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    // Use the onboarding status from the auth store instead of AsyncStorage
+    setHasSeenOnboarding(hasCompletedOnboarding)
+  }, [hasCompletedOnboarding])
 
   // Splash
   useEffect(() => {
-    if (loaded && hasSeenOnboarding !== null) {
+    if (loaded && hasSeenOnboarding !== null && _hasHydrated) {
       SplashScreen.hideAsync()
     }
-  }, [loaded, hasSeenOnboarding])
+  }, [loaded, hasSeenOnboarding, _hasHydrated])
 
-  if (!loaded || hasSeenOnboarding === null) {
+  if (!loaded || hasSeenOnboarding === null || !_hasHydrated) {
     return null
   }
 
@@ -91,21 +85,20 @@ export default function RootLayout() {
             value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
           >
             <Stack screenOptions={{ headerShown: false }}>
-              {!hasSeenOnboarding ? (
+              <Stack.Protected guard={!hasSeenOnboarding}>
                 <Stack.Screen
                   name="onBoarding"
                   options={{ headerShown: false }}
                 />
-              ) : (
-                <>
-                  <Stack.Protected guard={!isAuthenticated}>
-                    <Stack.Screen
-                      name="(auth)"
-                      options={{ headerShown: false }}
-                    />
-                  </Stack.Protected>
-                </>
-              )}
+              </Stack.Protected>
+              <Stack.Protected guard={!isLoggedIn}>
+                <Stack.Screen name="index" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              </Stack.Protected>
+
+              <Stack.Protected guard={isLoggedIn}>
+                <Stack.Screen name="app" options={{ headerShown: false }} />
+              </Stack.Protected>
             </Stack>
             <StatusBar style="auto" />
           </ThemeProvider>

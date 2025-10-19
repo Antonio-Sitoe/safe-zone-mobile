@@ -1,22 +1,16 @@
-import MapComponent from "@/components/map";
-import { useLocalSearchParams } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useGetAllZonesQuery } from "@/react-query/zone/zoneQuery";
+import MapComponent from '@/components/map'
+import { useLocalSearchParams } from 'expo-router'
+import { useGetAllZonesQuery } from '@/react-query/zone/zoneQuery'
 
 export default function MapScreen() {
-	const params = useLocalSearchParams();
+  const params = useLocalSearchParams()
+  const { data: zonesData } = useGetAllZonesQuery()
+  const allZones = zonesData?.data || []
 
-	// Fetch all zones to display on map
-	const { data: zonesData, isLoading } = useGetAllZonesQuery();
-	const allZones = zonesData?.data || [];
-
-	return (
-		<SafeAreaView className="flex-1">
-			<MapComponent
-				variant={params.variant as "safe" | "danger"}
-				zones={allZones}
-				isLoading={isLoading}
-			/>
-		</SafeAreaView>
-	);
+  return (
+    <MapComponent
+      variant={params.variant as 'safe' | 'danger'}
+      zones={allZones}
+    />
+  )
 }
