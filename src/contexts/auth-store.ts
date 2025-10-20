@@ -40,14 +40,12 @@ type AuthState = {
 export const useAuthStore = create(
   persist<AuthState>(
     (set) => ({
-      // Initial state
       isLoggedIn: false,
       hasCompletedOnboarding: false,
       _hasHydrated: false,
       user: null,
       session: null,
 
-      // Actions
       login: (user: User, session: Session) =>
         set({
           user,
