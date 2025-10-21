@@ -18,6 +18,7 @@ export default function DangerousZone() {
   )
 
   const { data: zonesData, isLoading, error } = useGetZonesByTypeQuery('DANGER')
+  console.log({ zonesData })
   const createZoneMutation = useCreateZoneMutation()
 
   const dangerousZones: Zone[] = zonesData?.data || []
