@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   TouchableOpacity,
 } from 'react-native'
+
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, router } from 'expo-router'
@@ -23,9 +24,9 @@ import { StatusBar } from 'expo-status-bar'
 
 import Shape1 from '@/assets/shapes1.svg'
 import Shape2 from '@/assets/shapes2.svg'
-import { signIn } from '@/actions/auth'
 import { AxiosError } from 'axios'
 import { useAuthStore } from '@/contexts/auth-store'
+import { authClient } from '@/lib/auth'
 
 const SignIn = () => {
   const [showPassword, setShowPassword] = useState(false)
@@ -46,21 +47,27 @@ const SignIn = () => {
   const onSubmit = async (_data: SignInFormData) => {
     setApiError(null)
     try {
-      const response = await signIn({
+      const { data, error } = await authClient.signIn.email({
         email: _data.email,
         password: _data.password,
       })
 
-      const { session, user } = response.data
-      login(user, session)
-      router.push('/app/home')
+      if (data) {
+        const { user, token } = data
+        console.log({ user, token })
+
+        login(user, token)
+      }
+
+      if (error) {
+        throw new Error(error.message)
+      }
     } catch (error) {
-      console.log(error)
       const message =
         error instanceof AxiosError
           ? error.response?.data?.message
           : 'Não foi possível fazer login. Tente novamente.'
-
+      console.log(message)
       if (error instanceof AxiosError) {
         console.log('error', JSON.stringify(error?.response?.data))
       }

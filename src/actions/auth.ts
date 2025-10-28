@@ -5,10 +5,6 @@ export async function signUp(data: SignUpSubmitData) {
   const response = await api.post('/auth/sign-up/email', data)
   return response.data
 }
-export async function signIn(data: { email: string; password: string }) {
-  const response = await api.post('/auth/sign-in/email', data)
-  return response.data
-}
 
 export async function verifyEmail(email: string) {
   const response = await api.post('/auth/email-otp/send-verification-otp', {

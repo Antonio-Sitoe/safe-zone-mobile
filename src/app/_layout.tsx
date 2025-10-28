@@ -47,9 +47,6 @@ export default function RootLayout() {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState<boolean | null>(
     null
   )
-  console.log('isLoggedIn', isLoggedIn)
-  console.log('hasCompletedOnboarding', hasCompletedOnboarding)
-  console.log('_hasHydrated', _hasHydrated)
 
   const [loaded] = useFonts({
     Inter: Inter_400Regular,
@@ -91,13 +88,18 @@ export default function RootLayout() {
                   options={{ headerShown: false }}
                 />
               </Stack.Protected>
-              <Stack.Protected guard={!isLoggedIn}>
-                <Stack.Screen name="index" options={{ headerShown: false }} />
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              </Stack.Protected>
+              <Stack.Protected guard={hasSeenOnboarding}>
+                <Stack.Protected guard={!isLoggedIn}>
+                  <Stack.Screen name="index" options={{ headerShown: false }} />
+                  <Stack.Screen
+                    name="(auth)"
+                    options={{ headerShown: false }}
+                  />
+                </Stack.Protected>
 
-              <Stack.Protected guard={isLoggedIn}>
-                <Stack.Screen name="app" options={{ headerShown: false }} />
+                <Stack.Protected guard={isLoggedIn}>
+                  <Stack.Screen name="app" options={{ headerShown: false }} />
+                </Stack.Protected>
               </Stack.Protected>
             </Stack>
             <StatusBar style="auto" />

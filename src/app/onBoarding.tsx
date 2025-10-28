@@ -1,4 +1,4 @@
-/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: <explanation> */
+/** biome-ignore-all lint/correctness/noNestedComponentDefinitions: ESLint */
 import Animated, {
   useSharedValue,
   useDerivedValue,
@@ -18,7 +18,6 @@ import {
 import PagerView from 'react-native-pager-view'
 import Shape2 from '@/assets/shapes2.svg'
 import { RFValue } from 'react-native-responsive-fontsize'
-import { router } from 'expo-router'
 import { StatusBar } from 'expo-status-bar'
 import { useAuthStore } from '@/contexts/auth-store'
 
@@ -102,13 +101,6 @@ export default function OnboardingScreen() {
   const handleCreateAccount = () => {
     clearAutoplay()
     completeOnboarding()
-    router.push('/(auth)/sign-up')
-  }
-
-  const handleJoinAccount = () => {
-    clearAutoplay()
-    completeOnboarding()
-    router.push('/(auth)/sign-in')
   }
 
   // biome-ignore lint/correctness/useExhaustiveDependencies:linting
@@ -305,17 +297,7 @@ export default function OnboardingScreen() {
                         { fontSize: RFValue(16, height) },
                       ]}
                     >
-                      Crie a sua conta
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    onPress={handleJoinAccount}
-                    className="items-center mb-10"
-                    style={{ paddingVertical: Math.max(12, height * 0.014) }}
-                  >
-                    <Text style={styles.secondaryText}>
-                      Entrar numa Conta existente
+                      Começar
                     </Text>
                   </TouchableOpacity>
                 </View>

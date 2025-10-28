@@ -5,33 +5,25 @@ import { Platform } from 'react-native'
 
 const isWeb = Platform.OS === 'web'
 
-export interface User {
+export interface IUser {
   id: string
   email: string
   name: string
+  image: string | null | undefined
   emailVerified: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-export interface Session {
-  id: string
-  token: string
-  expiresAt: string
+  createdAt: Date
+  updatedAt: Date
 }
 
 type AuthState = {
-  // Core auth state
   isLoggedIn: boolean
   hasCompletedOnboarding: boolean
   _hasHydrated: boolean
 
-  // User data
-  user: User | null
-  session: Session | null
+  user: IUser | null
+  token: string | null
 
-  // Actions
-  login: (user: User, session: Session) => void
+  login: (user: IUser, token: string) => void
   logout: () => void
   completeOnboarding: () => void
   setHasHydrated: (value: boolean) => void
@@ -44,19 +36,19 @@ export const useAuthStore = create(
       hasCompletedOnboarding: false,
       _hasHydrated: false,
       user: null,
-      session: null,
+      token: null,
 
-      login: (user: User, session: Session) =>
+      login: (user: IUser, token: string) =>
         set({
           user,
-          session,
+          token,
           isLoggedIn: true,
         }),
 
       logout: () =>
         set({
           user: null,
-          session: null,
+          token: null,
           isLoggedIn: false,
         }),
 
