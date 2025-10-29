@@ -24,10 +24,8 @@ import { StatusBar } from 'expo-status-bar'
 import { useMutation } from '@tanstack/react-query'
 import { signUp } from '@/actions/auth'
 import { AxiosError } from 'axios'
-import { env } from '@/lib/env'
 
 const SignUp = () => {
-  console.log({ env })
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [showPassword, setShowPassword] = useState(false)
@@ -37,7 +35,7 @@ const SignUp = () => {
     onSuccess: (data) => {
       const user = data?.data?.user
       router.push({
-        pathname: '/(auth)/send-email',
+        pathname: '/auth/send-email',
         params: {
           user: JSON.stringify(user),
         },

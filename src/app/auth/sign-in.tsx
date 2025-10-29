@@ -47,20 +47,19 @@ const SignIn = () => {
   const onSubmit = async (_data: SignInFormData) => {
     setApiError(null)
     try {
-      const { data, error } = await authClient.signIn.email({
-        email: _data.email,
-        password: _data.password,
-      })
-
-      if (data) {
-        const { user, token } = data
-        console.log({ user, token })
-
-        login(user, token)
-      }
-
-      if (error) {
-        throw new Error(error.message)
+      if (authClient) {
+        const { data, error } = await authClient.signIn.email({
+          email: _data.email,
+          password: _data.password,
+        })
+        if (data) {
+          const { user, token } = data
+          console.log({ user, token })
+          login(user, token)
+        }
+        if (error) {
+          throw new Error(error.message)
+        }
       }
     } catch (error) {
       const message =
@@ -196,7 +195,7 @@ const SignIn = () => {
                 )}
 
                 <View>
-                  <Link href="/(auth)/forgot-password" asChild>
+                  <Link href="/auth/forgot-password" asChild>
                     <TouchableOpacity>
                       <Text className="text-sm font-montserrat text-app-red text-right">
                         Esqueceu sua senha?
@@ -216,7 +215,7 @@ const SignIn = () => {
                   </Text>
                 </Button>
 
-                <Link href="/(auth)/sign-up" asChild>
+                <Link href="/auth/sign-up" asChild>
                   <TouchableOpacity className="flex-row gap-2 items-start justify-center">
                     <Text className="text-sm font-montserrat text-gray-700 text-center mb-2">
                       Não Tem Conta?
