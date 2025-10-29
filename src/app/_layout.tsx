@@ -38,7 +38,7 @@ const queryClient = new QueryClient({
 SplashScreen.preventAutoHideAsync()
 
 export const unstable_settings = {
-  anchor: 'onboard',
+  anchor: 'app',
 }
 
 export default function RootLayout() {
@@ -75,7 +75,7 @@ export default function RootLayout() {
 
   return (
     <GluestackUIProvider mode="dark">
-      <StatusBar backgroundColor="#fff" />
+      <StatusBar style="dark" />
       <QueryClientProvider client={queryClient}>
         <SafeAreaProvider>
           <ThemeProvider
@@ -91,10 +91,7 @@ export default function RootLayout() {
               <Stack.Protected guard={hasSeenOnboarding}>
                 <Stack.Protected guard={!isLoggedIn}>
                   <Stack.Screen name="index" options={{ headerShown: false }} />
-                  <Stack.Screen
-                    name="(auth)"
-                    options={{ headerShown: false }}
-                  />
+                  <Stack.Screen name="auth" options={{ headerShown: false }} />
                 </Stack.Protected>
 
                 <Stack.Protected guard={isLoggedIn}>

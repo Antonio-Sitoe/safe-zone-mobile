@@ -16,12 +16,12 @@ export function CardsGrid() {
         <SafetyCard
           title="zona segura"
           icon={MapPin}
-          onPress={() => router.push('/app/safeZone')}
+          onPress={() => router.push('/app/home/safeZone')}
         />
         <SafetyCard
           title="zona de perigo"
           icon={AlertTriangle}
-          onPress={() => router.push('/app/dangerousZone')}
+          onPress={() => router.push('/app/home/dangerousZone')}
         />
       </View>
 
@@ -34,7 +34,7 @@ export function CardsGrid() {
         <SafetyCard
           title="Comunidade de Apoio"
           icon={Users}
-          onPress={() => router.push('/app/community')}
+          onPress={() => router.push('/app/home/community')}
         />
       </View>
     </View>

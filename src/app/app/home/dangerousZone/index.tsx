@@ -5,20 +5,31 @@ import { LocationItem } from '@/components/locationItem'
 import { FloatingActionButton } from '@/components/floating-action-button'
 import { CreateArea } from '@/components/modal/area-form'
 import { SecondaryHeader } from '@/components/secondary-header'
-import { useLocalSearchParams, useRouter } from 'expo-router'
-import { useGetZonesByTypeQuery } from '@/react-query/zone/zoneQuery'
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router'
 import { useCreateZoneMutation } from '@/react-query/zone/zoneMutations'
 import type { Zone, CreateZoneSchema } from '@/@types/Zone'
+import { useQuery } from '@tanstack/react-query'
+import { getZonesByType } from '@/actions/zone'
 
 export default function DangerousZone() {
   const router = useRouter()
+  const { isFocused } = useNavigation()
   const params = useLocalSearchParams()
+
   const [modalVisible, setModalVisible] = useState(
     params.modalIsOpen === 'true' || false
   )
 
-  const { data: zonesData, isLoading, error } = useGetZonesByTypeQuery('DANGER')
-  console.log({ zonesData })
+  const {
+    data: zonesData,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['DANGER-ZONE', isFocused],
+    queryFn: () => getZonesByType('DANGER'),
+  })
+
   const createZoneMutation = useCreateZoneMutation()
 
   const dangerousZones: Zone[] = zonesData?.data || []
@@ -28,9 +39,8 @@ export default function DangerousZone() {
   }
 
   const handleLocationPress = (zone: Zone) => {
-    console.log(`Zone pressed: ${zone.slug}`)
     router.navigate({
-      pathname: '/app/map',
+      pathname: '/app/maps',
       params: {
         variant: 'danger',
         zoneId: zone.id,
@@ -70,7 +80,7 @@ export default function DangerousZone() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-white">
       <View className="flex-1">
         <SecondaryHeader
           title="Zona Perigosa"
@@ -78,12 +88,15 @@ export default function DangerousZone() {
           onMenuPress={handleMenuPress}
         />
 
+        <Text
+          className="text-gray-900 font-bold font-roboto text-xl px-6 mt-6 mb-2"
+          onPress={() => refetch()}
+        >
+          Localização
+        </Text>
+
         <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
           <View className="pt-6 pb-4">
-            <Text className="text-gray-900 font-bold text-xl px-4 mb-4">
-              Zonas Perigosas
-            </Text>
-
             {isLoading ? (
               <View className="flex-1 justify-center items-center py-8">
                 <ActivityIndicator size="large" color="#3B82F6" />
@@ -102,7 +115,7 @@ export default function DangerousZone() {
                 </Text>
               </View>
             ) : (
-              dangerousZones.map((zone, index) => (
+              dangerousZones.map((zone) => (
                 <LocationItem
                   key={zone.id}
                   variant="danger"
@@ -118,7 +131,7 @@ export default function DangerousZone() {
         <FloatingActionButton
           onPress={() =>
             router.navigate({
-              pathname: '/app/map',
+              pathname: '/app/maps',
               params: { variant: 'danger' },
             })
           }

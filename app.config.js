@@ -32,6 +32,7 @@ export default {
 		},
 		plugins: [
 			"expo-router",
+			"expo-web-browser",
 			"@maplibre/maplibre-react-native",
 			[
 				"expo-splash-screen",
