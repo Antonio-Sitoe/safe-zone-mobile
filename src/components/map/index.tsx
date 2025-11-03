@@ -77,7 +77,6 @@ export default function MapComponent({
       })
       .catch((error) => {
         console.error('Error fetching location name:', error)
-        // Define localização mesmo com erro, usando coordenadas
         setSelectedLocation({
           lat,
           lng,
@@ -108,7 +107,6 @@ export default function MapComponent({
     })
   }
 
-  // Estilo com tiles de rua (OpenStreetMap)
   const mapStyleJSON = {
     version: 8,
     sources: {
@@ -173,7 +171,6 @@ export default function MapComponent({
           </MapLibreGL.PointAnnotation>
         )}
 
-        {/* Render existing zones */}
         {zones.map((zone) => (
           <MapLibreGL.PointAnnotation
             key={zone.id}

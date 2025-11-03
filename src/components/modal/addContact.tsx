@@ -1,95 +1,176 @@
-import { useState } from "react";
-import { View, Text, Modal, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
-import { InputSecondary } from "../ui/input/input";
-import { RadioButton } from "../ui/radioButton";
-import { ButtonSecondary } from "../ui/button/button";
-import type { AddContactModalProps } from "@/@types/Contact";
+import { useState, useEffect } from 'react'
+import { View, Text, Keyboard } from 'react-native'
+import { InputSecondary } from '../ui/input/input'
+import { Button } from '../ui/button'
+import {
+  Actionsheet,
+  ActionsheetContent,
+  ActionsheetItem,
+  ActionsheetItemText,
+  ActionsheetDragIndicator,
+  ActionsheetDragIndicatorWrapper,
+  ActionsheetBackdrop,
+  ActionsheetScrollView,
+} from '../ui/actionsheet'
+import type { AddContactModalProps } from '@/@types/Contact'
 
-export const AddContactModal = ({ visible, onClose, onSubmit, data }: AddContactModalProps) => {
-	const [name, setName] = useState("");
-	const [phone, setPhone] = useState("");
-	const [selectedGroup, setSelectedGroup] = useState<string>("");
+export const AddContactModal = ({
+  visible,
+  onClose,
+  onSubmit,
+  data,
+}: AddContactModalProps) => {
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [selectedGroup, setSelectedGroup] = useState<string>('')
+  const [showGroupSelector, setShowGroupSelector] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-	const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedGroupName =
+    data?.data.find((group: any) => group.id === selectedGroup)?.name ||
+    'Selecione um grupo'
 
-	const handleSubmit = async () => {
-		if (!name.trim() || !phone.trim()) return;
+  useEffect(() => {
+    if (!visible) {
+      setName('')
+      setPhone('')
+      setSelectedGroup('')
+      setShowGroupSelector(false)
+    }
+  }, [visible])
 
-		setIsSubmitting(true);
-		try {
-			await onSubmit(name.trim(), phone.trim(), selectedGroup);
-			setName("");
-			setPhone("");
-			setSelectedGroup("Família");
-			onClose();
-		} catch (error) {
-			console.error("Error adding contact:", error);
-		} finally {
-			setIsSubmitting(false);
-		}
-	};
+  const handleSubmit = async () => {
+    if (!name.trim() || !phone.trim() || !selectedGroup) {
+      console.error('Preencha todos os campos e selecione um grupo')
+      return
+    }
 
-	const handleClose = () => {
-		setName("");
-		setPhone("");
-		setSelectedGroup("Família");
-		onClose();
-	};
+    setIsSubmitting(true)
+    try {
+      await onSubmit(name.trim(), phone.trim(), selectedGroup)
+      handleClose()
+    } catch (error) {
+      console.error('Error adding contact:', error)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
 
-	return (
-		<Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-			<View className="flex-1 bg-black/50 justify-end">
-				<KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"}>
-					<View className="bg-white rounded-t-3xl pt-6 pb-8 px-6">
-						<View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-6" />
+  const handleClose = () => {
+    setName('')
+    setPhone('')
+    setSelectedGroup('')
+    setShowGroupSelector(false)
+    onClose()
+  }
 
-						<Text className="text-2xl font-bold text-gray-900 text-center mb-6">
-							Adicionar Contacto
-						</Text>
+  return (
+    <>
+      <Actionsheet isOpen={visible} onClose={handleClose}>
+        <ActionsheetBackdrop onPress={handleClose} />
+        <ActionsheetContent className="bg-white">
+          <ActionsheetDragIndicatorWrapper>
+            <ActionsheetDragIndicator />
+          </ActionsheetDragIndicatorWrapper>
+          <ActionsheetScrollView
+            keyboardShouldPersistTaps="handled"
+            style={{ width: '100%' }}
+            contentContainerStyle={{
+              paddingHorizontal: 24,
+              paddingTop: 6,
+              paddingBottom: 32,
+            }}
+          >
+            <Text className="text-2xl font-bold text-gray-900 text-center mb-6">
+              Adicionar Contacto
+            </Text>
 
-						<ScrollView showsVerticalScrollIndicator={false}>
-							<InputSecondary
-								label="Nome"
-								placeholder="Introduza O Nome"
-								value={name}
-								onChangeText={setName}
-							/>
+            <InputSecondary
+              label="Nome"
+              placeholder="Introduza O Nome"
+              value={name}
+              onChangeText={setName}
+            />
 
-							<InputSecondary
-								label="Número De Celular"
-								placeholder="+258"
-								value={phone}
-								onChangeText={setPhone}
-								keyboardType="phone-pad"
-							/>
+            <InputSecondary
+              label="Número De Celular"
+              placeholder="+258"
+              value={phone}
+              onChangeText={setPhone}
+              keyboardType="phone-pad"
+            />
 
-							<Text className="text-base font-medium text-gray-900 mb-2">Tipo De Contacto</Text>
-							{data?.data.map((group: any) => (
-								<RadioButton
-									key={group.id}
-									label={group.name}
-									selected={selectedGroup === group.id}
-									onPress={() => setSelectedGroup(group.id)}
-								/>
-							))}
+            <Text className="text-base font-medium text-gray-900 mb-2 mt-4">
+              Selecione Grupo
+            </Text>
+            <Button
+              size="lg"
+              variant="outline"
+              onPress={() => {
+                Keyboard.dismiss()
+                setShowGroupSelector(true)
+              }}
+              className="w-full"
+            >
+              <Text className="text-gray-900 font-medium">
+                {selectedGroupName}
+              </Text>
+            </Button>
 
-							<View className="mt-6 space-y-3">
-								<ButtonSecondary
-									variant="secondary"
-									onPress={handleSubmit}
-									disabled={!name.trim() || !phone.trim() || isSubmitting}
-								>
-									{isSubmitting ? "Adicionando..." : "Adicionar"}
-								</ButtonSecondary>
+            <View className="mt-6 space-y-3 flex-row justify-between gap-3">
+              <Button
+                size="lg"
+                onPress={handleSubmit}
+                disabled={
+                  !name.trim() ||
+                  !phone.trim() ||
+                  !selectedGroup ||
+                  isSubmitting
+                }
+                className="flex-1"
+              >
+                <Text className="text-white font-semibold">
+                  {isSubmitting ? 'Adicionando...' : 'Adicionar'}
+                </Text>
+              </Button>
 
-								<ButtonSecondary onPress={handleClose} variant="secondary">
-									Cancelar
-								</ButtonSecondary>
-							</View>
-						</ScrollView>
-					</View>
-				</KeyboardAvoidingView>
-			</View>
-		</Modal>
-	);
-};
+              <Button
+                size="lg"
+                variant="gray"
+                onPress={handleClose}
+                className="flex-1"
+              >
+                <Text className="text-gray-900 font-semibold">Fechar</Text>
+              </Button>
+            </View>
+          </ActionsheetScrollView>
+        </ActionsheetContent>
+      </Actionsheet>
+
+      <Actionsheet
+        isOpen={showGroupSelector}
+        onClose={() => setShowGroupSelector(false)}
+      >
+        <ActionsheetBackdrop onPress={() => setShowGroupSelector(false)} />
+        <ActionsheetContent className="bg-white">
+          <ActionsheetDragIndicatorWrapper>
+            <ActionsheetDragIndicator />
+          </ActionsheetDragIndicatorWrapper>
+          <ActionsheetScrollView>
+            {data?.data.map((group: any) => (
+              <ActionsheetItem
+                key={group.id}
+                onPress={() => {
+                  setSelectedGroup(group.id)
+                  setShowGroupSelector(false)
+                }}
+              >
+                <ActionsheetItemText>{group.name}</ActionsheetItemText>
+              </ActionsheetItem>
+            ))}
+          </ActionsheetScrollView>
+        </ActionsheetContent>
+      </Actionsheet>
+    </>
+  )
+}

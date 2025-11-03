@@ -24,6 +24,7 @@ export const useCreateGroupMutation = () => {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["groups"] });
 			queryClient.invalidateQueries({ queryKey: ["groups-data"] });
+			queryClient.invalidateQueries({ queryKey: ["all-contacts"] });
 		},
 		onError: (error) => {
 			console.error("Error creating group:", error);
@@ -45,13 +46,18 @@ export const useUpdateGroupMutation = () => {
 		}) => {
 			const payload = {
 				name,
-				contacts: members.map((m) => ({ name: m.name, phone: m.phone })),
+				contacts: members.map((m) => ({
+					...(m.id && { id: m.id }),
+					name: m.name,
+					phone: m.phone,
+				})),
 			};
 			return updateGroup(payload, groupId);
 		},
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["groups"] });
 			queryClient.invalidateQueries({ queryKey: ["groups-data"] });
+			queryClient.invalidateQueries({ queryKey: ["all-contacts"] });
 		},
 		onError: (error) => {
 			console.error("Error updating group:", error);
@@ -68,6 +74,7 @@ export const useDeleteGroupMutation = () => {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["groups"] });
 			queryClient.invalidateQueries({ queryKey: ["groups-data"] });
+			queryClient.invalidateQueries({ queryKey: ["all-contacts"] });
 		},
 		onError: (error) => {
 			console.error("Error deleting group:", error);
@@ -84,6 +91,7 @@ export const useGetGroupsMutation = () => {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: ["groups"] });
 			queryClient.invalidateQueries({ queryKey: ["groups-data"] });
+			queryClient.invalidateQueries({ queryKey: ["all-contacts"] });
 		},
 		onError: (error) => {
 			console.error("Error getting group:", error);

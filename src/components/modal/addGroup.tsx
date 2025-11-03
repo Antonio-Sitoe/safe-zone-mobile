@@ -5,13 +5,14 @@ import {
   Modal,
   ScrollView,
   Pressable,
-  KeyboardAvoidingView,
-  Platform,
   TextInput,
   Alert,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { InputSecondary } from '../ui/input/input'
-import { ButtonSecondary } from '../ui/button/button'
+import { Button } from '../ui/button'
 import type { CreateGroupModalProps } from '@/@types/Group'
 import { UserPlus2, X } from 'lucide-react-native'
 import { ContactPickerModal } from '../contacts'
@@ -28,6 +29,9 @@ export const CreateGroupModal = ({
   visible,
   onClose,
   onSubmit,
+  groupId,
+  initialData,
+  mode = 'create',
 }: CreateGroupModalProps) => {
   const [groupName, setGroupName] = useState('')
   const [phoneInput, setPhoneInput] = useState('')
@@ -49,6 +53,25 @@ export const CreateGroupModal = ({
     }
     loadContacts()
   }, [])
+
+  useEffect(() => {
+    if (visible && mode === 'edit' && initialData) {
+      setGroupName(initialData.name)
+      setSelectedMembers(
+        initialData.members.map((m) => ({
+          id: m.id || Date.now().toString(),
+          name: m.name,
+          phone: m.phone,
+          isManual: true,
+        }))
+      )
+    } else if (visible && mode === 'create') {
+      setGroupName('')
+      setSelectedMembers([])
+      setPhoneInput('')
+      setNameInput('')
+    }
+  }, [visible, mode, initialData])
 
   const handleAddMember = () => {
     if (!nameInput.trim() || !phoneInput.trim()) {
@@ -139,19 +162,29 @@ export const CreateGroupModal = ({
       animationType="slide"
       onRequestClose={handleClose}
     >
-      <View className="flex-1  bg-black/50 justify-end">
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-          <ScrollView>
-            <View className="bg-white rounded-t-3xl pt-6 pb-8 px-6">
-              <View className="w-12 h-1 bg-gray-300 rounded-full self-center mb-6" />
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View className="flex-1 bg-black/50 justify-end">
+          <TouchableWithoutFeedback onPress={(e) => e.stopPropagation()}>
+            <View className="bg-white rounded-t-3xl max-h-[90%]">
+              <View className="w-12 h-1 bg-gray-300 rounded-full self-center mt-3 mb-6" />
 
-              <Text className="text-2xl font-bold text-gray-900 text-center mb-6">
-                Criar Grupo
-              </Text>
+              <KeyboardAwareScrollView
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                enableOnAndroid={true}
+                enableAutomaticScroll={true}
+                extraScrollHeight={20}
+                keyboardOpeningTime={0}
+                contentContainerStyle={{
+                  paddingHorizontal: 24,
+                  paddingTop: 6,
+                  paddingBottom: 32,
+                }}
+              >
+                <Text className="text-2xl font-bold text-gray-900 text-center mb-6 font-montserrat-bold">
+                  {mode === 'edit' ? 'Editar Grupo' : 'Criar Grupo'}
+                </Text>
 
-              <ScrollView showsVerticalScrollIndicator={false}>
                 <InputSecondary
                   label="Nome do Grupo"
                   placeholder="Introduza o nome"
@@ -159,11 +192,11 @@ export const CreateGroupModal = ({
                   onChangeText={setGroupName}
                 />
 
-                <Text className="text-base font-medium text-gray-900 mb-2 mt-4">
+                <Text className="text-base font-medium text-gray-900 mb-2 mt-4 font-body">
                   Adicionar Participantes
                 </Text>
 
-                <View className="flex-row space-x-2 mb-4 items-center">
+                <View className="flex-row space-x-2 gap-4 mb-4 items-center">
                   <TextInput
                     placeholder="Nome"
                     value={nameInput}
@@ -187,7 +220,7 @@ export const CreateGroupModal = ({
                     className="bg-gray-100 rounded-xl px-4 py-3 flex-row items-center space-x-2 active:opacity-70"
                   >
                     <UserPlus2 size={22} color="#2563EB" />
-                    <Text className="text-blue-700 font-medium">
+                    <Text className="text-blue-700 font-medium font-body">
                       Escolher Contactos
                     </Text>
                   </Pressable>
@@ -196,13 +229,15 @@ export const CreateGroupModal = ({
                     onPress={handleAddMember}
                     className="bg-app-primary rounded-xl px-5 py-3 active:opacity-80"
                   >
-                    <Text className="text-white font-semibold">Adicionar</Text>
+                    <Text className="text-white font-semibold font-body">
+                      Adicionar
+                    </Text>
                   </Pressable>
                 </View>
 
                 {selectedMembers.length > 0 && (
                   <>
-                    <Text className="text-base font-medium text-gray-900 mb-2">
+                    <Text className="text-base font-medium text-gray-900 mb-2 font-body">
                       Participantes adicionados
                     </Text>
                     <ScrollView
@@ -229,24 +264,39 @@ export const CreateGroupModal = ({
                   </>
                 )}
 
-                <View className="mt-6 space-y-3">
-                  <ButtonSecondary
-                    variant="secondary"
+                <View className="mb-6 flex-row justify-between gap-3 space-y-3">
+                  <Button
+                    variant="default"
+                    size="lg"
+                    className="flex-1"
                     onPress={handleSubmit}
                     disabled={!groupName.trim() || isSubmitting}
                   >
-                    {isSubmitting ? 'Criando...' : 'Criar Grupo'}
-                  </ButtonSecondary>
+                    <Text className="text-white font-semibold font-body">
+                      {isSubmitting
+                        ? mode === 'edit'
+                          ? 'Salvando...'
+                          : 'Criando...'
+                        : mode === 'edit'
+                        ? 'Guardar'
+                        : 'Criar Grupo'}
+                    </Text>
+                  </Button>
 
-                  <ButtonSecondary onPress={handleClose} variant="secondary">
-                    Cancelar
-                  </ButtonSecondary>
+                  <Button
+                    variant="gray"
+                    size="lg"
+                    onPress={handleClose}
+                    className="flex-1"
+                  >
+                    <Text className="text-gray-900 font-semibold">Fechar</Text>
+                  </Button>
                 </View>
-              </ScrollView>
+              </KeyboardAwareScrollView>
             </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </View>
+          </TouchableWithoutFeedback>
+        </View>
+      </TouchableWithoutFeedback>
 
       <ContactPickerModal
         visible={contactModalVisible}

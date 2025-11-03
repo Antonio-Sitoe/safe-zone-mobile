@@ -316,7 +316,6 @@ const ButtonText = React.forwardRef<
     action: parentAction,
   } = useStyleContext(SCOPE)
 
-  // Ensure size is only one of the allowed values
   const allowedSizes = ['xs', 'sm', 'md', 'lg', 'xl'] as const
   const normalizedSize = allowedSizes.includes(size as any)
     ? (size as (typeof allowedSizes)[number])

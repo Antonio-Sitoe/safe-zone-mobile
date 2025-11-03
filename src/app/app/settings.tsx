@@ -78,15 +78,25 @@ const SettingCard = ({
   value: boolean
   onValueChange: (val: boolean) => void
 }) => (
-  <View className="flex-row items-center justify-between gap-4 bg-[#1D2C5E] rounded-2xl px-4 py-3">
-    <View className="flex-row items-center space-x-3 gap-4">
-      {icon}
-      <Text className="text-white text-sm font-roboto">{text}</Text>
+  <View className="flex-row items-center justify-between w-full bg-[#1D2C5E] rounded-2xl px-4 py-3">
+    <View
+      className="flex-row items-center flex-1 gap-3 mr-3"
+      style={{ minWidth: 0 }}
+    >
+      <View style={{ flexShrink: 0 }}>{icon}</View>
+      <Text
+        className="text-white text-sm font-roboto"
+        style={{ flex: 1, flexShrink: 1 }}
+      >
+        {text}
+      </Text>
     </View>
-    <Switch
-      value={value}
-      onValueChange={onValueChange}
-      trackColor={{ true: '#4ADE80', false: '#E5E7EB' }}
-    />
+    <View style={{ flexShrink: 0 }}>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ true: '#4ADE80', false: '#E5E7EB' }}
+      />
+    </View>
   </View>
 )

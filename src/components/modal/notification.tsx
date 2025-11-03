@@ -1,6 +1,6 @@
 import { View, Text, Modal } from 'react-native'
 import { Check } from 'lucide-react-native'
-import { ButtonSecondary } from '../ui/button/button'
+import { Button } from '../ui/button'
 import type { SuccessModalProps } from '@/@types/area'
 
 export const SuccessModal = ({
@@ -31,9 +31,9 @@ export const SuccessModal = ({
           </Text>
 
           <View className="w-full">
-            <ButtonSecondary variant="secondary" onPress={onClose}>
-              Fechar
-            </ButtonSecondary>
+            <Button size="lg" onPress={onClose}>
+              <Text className="text-white font-semibold">Fechar</Text>
+            </Button>
           </View>
         </View>
       </View>

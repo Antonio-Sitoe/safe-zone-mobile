@@ -1,157 +1,64 @@
 import { useState } from 'react'
-import { View, Text, ScrollView, ActivityIndicator } from 'react-native'
-import { UserPlus, Users } from 'lucide-react-native'
-import { CategoryCard } from '@/components/categoryCard'
-import { ButtonSecondary } from '@/components/ui/button/button'
-import { AddContactModal } from '@/components/modal/addContact'
-import { CreateGroupModal } from '@/components/modal/addGroup'
-import { SuccessModal } from '@/components/modal/notification'
+import { View, Dimensions } from 'react-native'
+import { TabView, SceneMap, TabBar } from 'react-native-tab-view'
 import { SecondaryHeader } from '@/components/secondary-header'
 import { useRouter } from 'expo-router'
-import { useCreateGroupMutation } from '@/react-query/community/community/groupMutations'
-import type { Contact } from '@/@types/Contact'
-import {
-  useGetGroupsDataQuery,
-  useGetGroupsQuery,
-} from '@/react-query/community/community/groupQuery'
-import { useCreateContactMutation } from '@/react-query/community/community/contactMutation'
+import { SafeAreaView } from 'react-native-safe-area-context'
+import { GroupsTab } from '@/components/comunity-components/GroupsTab'
+import { ContactsTab } from '@/components/comunity-components/ContactsTab'
+
+const initialLayout = { width: Dimensions.get('window').width }
+
+const renderTabBar = (props: any) => (
+  <TabBar
+    {...props}
+    indicatorStyle={{ backgroundColor: '#2B4170', height: 3 }}
+    style={{
+      backgroundColor: '#FFFFFF',
+      borderBottomWidth: 1,
+      borderBottomColor: '#E5E7EB',
+    }}
+    labelStyle={{
+      fontSize: 14,
+      fontWeight: '600',
+      textTransform: 'none',
+      color: '#2B4170',
+      fontFamily: 'Inter',
+    }}
+    activeColor="#2B4170"
+    inactiveColor="#9CA3AF"
+  />
+)
 
 export default function SupportCommunityScreen() {
   const router = useRouter()
-  const [showAddContactModal, setShowAddContactModal] = useState(false)
-  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [successMessage, setSuccessMessage] = useState({
-    title: '',
-    message: '',
+  const [index, setIndex] = useState(0)
+  const [routes] = useState([
+    { key: 'grupos', title: 'Grupos' },
+    { key: 'contactos', title: 'Contactos' },
+  ])
+
+  const renderScene = SceneMap({
+    grupos: () => <GroupsTab />,
+    contactos: () => <ContactsTab />,
   })
 
-  const userId = '507cf8bc-b637-4a8f-a8d1-38d58244f0c5'
-  const { data: groupsData, isLoading: groupsLoading } =
-    useGetGroupsQuery(userId)
-  const { data: groups } = useGetGroupsDataQuery(userId)
-
-  const createGroupMutation = useCreateGroupMutation()
-  const createContactMutation = useCreateContactMutation()
-
-  const handleAddContact = async (
-    name: string,
-    phone: string,
-    groupId: string
-  ) => {
-    createContactMutation.mutate(
-      {
-        groupId,
-        name,
-        phone,
-      },
-      {
-        onSuccess: () => {
-          setSuccessMessage({
-            title: 'Contato Adicionado Com Sucesso.',
-            message: 'O Novo Contato Foi Incluído Em Sua Lista Com Êxito',
-          })
-          setShowSuccessModal(true)
-        },
-        onError: (error: any) => {
-          setSuccessMessage({
-            title: 'Erro',
-            message: error?.message || 'Erro ao conatcto grupo',
-          })
-          setShowSuccessModal(true)
-        },
-      }
-    )
-  }
-
-  const handleCreateGroup = (name: string, members: Contact[]) => {
-    createGroupMutation.mutate(
-      { userId, name, members },
-      {
-        onSuccess: () => {
-          setSuccessMessage({
-            title: 'Grupo Criado!',
-            message: 'O novo grupo foi criado com sucesso.',
-          })
-          setShowSuccessModal(true)
-        },
-        onError: (error: any) => {
-          setSuccessMessage({
-            title: 'Erro',
-            message: error?.message || 'Erro ao criar grupo',
-          })
-          setShowSuccessModal(true)
-        },
-      }
-    )
-  }
-
   return (
-    <View className="flex-1 pt-6 pb-5 bg-gray-50">
+    <SafeAreaView className="flex-1 bg-white">
       <SecondaryHeader
-        title="Comunidade"
+        title="Grupos e Contatos"
         onBackPress={() => router.back()}
-        onMenuPress={() => {}}
       />
 
-      <ScrollView className="flex-1 px-6 pt-6">
-        {groupsLoading ? (
-          <View className="flex-1 items-center justify-center py-10">
-            <ActivityIndicator size="large" color="#2B4170" />
-          </View>
-        ) : groupsData?.data.length === 0 ? (
-          <Text className="text-center text-gray-500 text-base">
-            Sem grupos
-          </Text>
-        ) : (
-          groupsData?.data.map((group: any) => (
-            <CategoryCard
-              key={group.id}
-              name={group.name}
-              count={group.contactsTotal}
-            />
-          ))
-        )}
-      </ScrollView>
-
-      <View className="px-6 pb-6 space-y-3">
-        <ButtonSecondary
-          variant="secondary"
-          onPress={() => setShowAddContactModal(true)}
-          icon={<UserPlus size={20} color="#FFFFFF" />}
-        >
-          Adicionar contacto
-        </ButtonSecondary>
-
-        <ButtonSecondary
-          variant="secondary"
-          onPress={() => setShowCreateGroupModal(true)}
-          icon={<Users size={20} color="#FFFFFF" />}
-        >
-          Criar grupo
-        </ButtonSecondary>
+      <View className="flex-1">
+        <TabView
+          navigationState={{ index, routes }}
+          renderScene={renderScene}
+          onIndexChange={setIndex}
+          initialLayout={initialLayout}
+          renderTabBar={renderTabBar}
+        />
       </View>
-
-      <AddContactModal
-        visible={showAddContactModal}
-        onClose={() => setShowAddContactModal(false)}
-        data={groups}
-        onSubmit={handleAddContact}
-      />
-
-      <CreateGroupModal
-        visible={showCreateGroupModal}
-        onClose={() => setShowCreateGroupModal(false)}
-        onSubmit={handleCreateGroup}
-        availableContacts={null}
-      />
-
-      <SuccessModal
-        visible={showSuccessModal}
-        onClose={() => setShowSuccessModal(false)}
-        title={successMessage.title}
-        message={successMessage.message}
-      />
-    </View>
+    </SafeAreaView>
   )
 }

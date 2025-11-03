@@ -88,7 +88,7 @@ export const ContactPickerModal = ({
 
   return (
     <Modal visible={visible} animationType="slide" onRequestClose={handleClose}>
-      <View className="flex-1 bg-white">
+      <View className="flex-1 py-10 bg-white">
         <View className="flex-row items-center justify-between px-5 py-4 border-b border-gray-200">
           <Text className="text-lg font-semibold text-gray-900">
             Selecionar Contactos

@@ -58,11 +58,9 @@ export default function RootLayout() {
   })
 
   useEffect(() => {
-    // Use the onboarding status from the auth store instead of AsyncStorage
     setHasSeenOnboarding(hasCompletedOnboarding)
   }, [hasCompletedOnboarding])
 
-  // Splash
   useEffect(() => {
     if (loaded && hasSeenOnboarding !== null && _hasHydrated) {
       SplashScreen.hideAsync()
