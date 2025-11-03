@@ -77,7 +77,7 @@ export default function RootLayout() {
     <GluestackUIProvider mode="dark">
       <StatusBar style="dark" />
       <QueryClientProvider client={queryClient}>
-        <SafeAreaProvider>
+        <SafeAreaProvider style={{ flex: 1 }}>
           <ThemeProvider
             value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}
           >

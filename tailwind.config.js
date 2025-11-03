@@ -177,16 +177,19 @@ module.exports = {
 				},
 			},
 			fontFamily: {
-				heading: ["Montserrat", "Inter", "system-ui", "sans-serif"],
-				body: ["Montserrat", "Inter", "system-ui", "sans-serif"],
+				heading: ["Montserrat-Bold", "Montserrat", "system-ui", "sans-serif"],
+				body: ["Inter", "system-ui", "sans-serif"],
+				bold: ["Inter-Bold", "Inter", "system-ui", "sans-serif"],
 				mono: ["var(--font-source-code-pro)", "monospace"],
 				jakarta: ["var(--font-plus-jakarta-sans)"],
 				roboto: ["var(--font-roboto)"],
 				code: ["var(--font-source-code-pro)"],
-				inter: ["Inter", "var(--font-inter)", "system-ui", "sans-serif"],
+				inter: ["Inter", "system-ui", "sans-serif"],
+				"inter-bold": ["Inter-Bold", "Inter", "system-ui", "sans-serif"],
 				montserrat: ["Montserrat", "system-ui", "sans-serif"],
+				"montserrat-bold": ["Montserrat-Bold", "Montserrat", "system-ui", "sans-serif"],
 				"space-mono": ["var(--font-space-mono)"],
-				sans: ["Montserrat", "Inter", "var(--font-inter)", "system-ui", "sans-serif"],
+				sans: ["Inter", "system-ui", "sans-serif"],
 			},
 			fontWeight: {
 				extrablack: "950",
@@ -226,4 +229,17 @@ module.exports = {
 			},
 		},
 	},
+	plugins: [
+		function ({ addUtilities }) {
+			addUtilities({
+				'.font-bold': {
+					fontFamily: 'Inter-Bold',
+				},
+				'.font-semibold': {
+					fontFamily: 'Inter',
+					fontWeight: '600',
+				},
+			})
+		},
+	],
 };

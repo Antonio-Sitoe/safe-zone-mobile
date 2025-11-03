@@ -5,6 +5,7 @@ export interface AddContactModalProps {
 	data: any;
 }
 export interface Contact {
+	id?: string;
 	name: string;
 	phone: string;
 }

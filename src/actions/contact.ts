@@ -3,11 +3,11 @@ import { api } from "@/lib/axios";
 
 export const CreateContact = async (data: Contact, groupId: string) => {
 	try {
-		const response = api.post(`/groups/contact/${groupId}`, data);
+		const response = await api.post(`/groups/contact/${groupId}`, data);
 
-		return { data: response, error: false };
+		return { data: response.data, error: false };
 	} catch (error: any) {
-		return { message: error.request.message, error: true };
+		throw error;
 	}
 };
 export const deleteContact = async (id: string) => {

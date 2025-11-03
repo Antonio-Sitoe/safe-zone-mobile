@@ -24,7 +24,7 @@ export const getGroupsByUser = async (userId: string) => {
 };
 export const getGroupById = async (id: string) => {
 	try {
-		const response = await api.get(`/groups/${id}`);
+		const response = await api.get(`/groups/group/${id}`);
 
 		return { data: response.data, error: false };
 	} catch (error: any) {
@@ -33,6 +33,43 @@ export const getGroupById = async (id: string) => {
 		return { error: true, message: error.request.message };
 	}
 };
+
+export const getGroupWithContacts = async (id: string) => {
+	try {
+		const response = await api.get(`/groups/${id}/contacts`);
+
+		return { data: response.data, error: false };
+	} catch (error: any) {
+		console.error({ error });
+
+		return { error: true, message: error.request.message };
+	}
+};
+
+export const getContactsByGroupId = async (groupId: string) => {
+	try {
+		const response = await api.get(`/groups/contacts/${groupId}`);
+
+		return { data: response.data, error: false };
+	} catch (error: any) {
+		console.error({ error });
+
+		return { error: true, message: error.request.message };
+	}
+};
+
+export const getContactsByUserId = async (userId: string) => {
+	try {
+		const response = await api.get(`/groups/contacts/user/${userId}`);
+
+		return { data: response.data, error: false };
+	} catch (error: any) {
+		console.error({ error });
+
+		return { error: true, message: error.request.message };
+	}
+};
+
 export const createGroup = async (userId: string, data: CreateGroupSchema) => {
 	try {
 		console.log(data, userId);
@@ -45,9 +82,10 @@ export const createGroup = async (userId: string, data: CreateGroupSchema) => {
 		return { error: true, message: error.request.message };
 	}
 };
+
 export const updateGroup = async (data: CreateGroupSchema, id: string) => {
 	try {
-		const response = api.put(`/groups/${id}`, { data });
+		const response = await api.put(`/groups/${id}/contacts`, data);
 
 		return { data: response, error: false };
 	} catch (error: any) {
