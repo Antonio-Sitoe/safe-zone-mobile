@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { View, Text, Keyboard } from 'react-native'
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view'
 import { InputSecondary } from '../ui/input/input'
 import { Button } from '../ui/button'
 import {
@@ -72,11 +73,17 @@ export const AddContactModal = ({
           <ActionsheetDragIndicatorWrapper>
             <ActionsheetDragIndicator />
           </ActionsheetDragIndicatorWrapper>
-          <ActionsheetScrollView
+          <KeyboardAwareScrollView
             keyboardShouldPersistTaps="handled"
-            style={{ width: '100%' }}
+            showsVerticalScrollIndicator={false}
+            enableOnAndroid={true}
+            enableAutomaticScroll={true}
+            extraScrollHeight={20}
+            keyboardOpeningTime={0}
+            style={{
+              width: '100%',
+            }}
             contentContainerStyle={{
-              paddingHorizontal: 24,
               paddingTop: 6,
               paddingBottom: 32,
             }}
@@ -143,7 +150,7 @@ export const AddContactModal = ({
                 <Text className="text-gray-900 font-semibold">Fechar</Text>
               </Button>
             </View>
-          </ActionsheetScrollView>
+          </KeyboardAwareScrollView>
         </ActionsheetContent>
       </Actionsheet>
 
@@ -165,7 +172,9 @@ export const AddContactModal = ({
                   setShowGroupSelector(false)
                 }}
               >
-                <ActionsheetItemText>{group.name}</ActionsheetItemText>
+                <ActionsheetItemText className="text-black">
+                  {group.name}
+                </ActionsheetItemText>
               </ActionsheetItem>
             ))}
           </ActionsheetScrollView>
