@@ -44,8 +44,22 @@ const SignUp = () => {
 		onError: (ee) => {
 			console.log("jeeeeeeeeeeeeeeeee", JSON.stringify(ee));
 			if (ee instanceof AxiosError) {
-				console.log("ERROR", JSON.stringify(ee.response?.data?.error, null, 2));
-				setError(ee.response?.data?.error);
+				const status = ee.response?.status;
+				const responseData = ee.response?.data;
+
+				if (status === 409 && responseData?.error === 'EMAIL_NOT_VERIFIED' && responseData?.data?.user) {
+					const user = responseData.data.user;
+					router.push({
+						pathname: "/auth/send-email",
+						params: {
+							user: JSON.stringify(user),
+						},
+					});
+					return;
+				}
+
+				console.log("ERROR", JSON.stringify(responseData?.error, null, 2));
+				setError(responseData?.error || responseData?.message || "Não foi possível criar a conta. Tente novamente.");
 			} else {
 				console.log("ERROR", JSON.stringify(ee, null, 2));
 				setError("Não foi possível criar a conta. Tente novamente.");
