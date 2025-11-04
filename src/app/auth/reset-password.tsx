@@ -97,7 +97,10 @@ const ResetPassword = () => {
 					<Text className="text-sm font-montserrat text-gray-600 text-center mb-8">
 						O link de recuperação de senha é inválido ou expirou. Por favor, solicite um novo.
 					</Text>
-					<Button onPress={() => router.replace("/auth/forgot-password")} className="bg-app-primary rounded-lg h-16 mx-auto w-48">
+					<Button
+						onPress={() => router.replace("/auth/forgot-password")}
+						className="bg-app-primary rounded-lg h-16 mx-auto w-48"
+					>
 						<Text className="text-white font-montserrat font-semibold text-xs">
 							Solicitar Nova Recuperação
 						</Text>
@@ -157,10 +160,7 @@ const ResetPassword = () => {
 													secureTextEntry={!showPassword}
 													autoCapitalize="none"
 												/>
-												<Pressable
-													onPress={() => setShowPassword(!showPassword)}
-													className="pr-3"
-												>
+												<Pressable onPress={() => setShowPassword(!showPassword)} className="pr-3">
 													<Ionicons
 														name={showPassword ? "eye-off" : "eye"}
 														size={20}
@@ -263,4 +263,3 @@ const ResetPassword = () => {
 };
 
 export default ResetPassword;
-

@@ -10,7 +10,7 @@ export interface CreateGroupModalProps {
 		name: string;
 		members: Contact[];
 	};
-	mode?: 'create' | 'edit';
+	mode?: "create" | "edit";
 }
 
 export interface CreateGroupSchema {

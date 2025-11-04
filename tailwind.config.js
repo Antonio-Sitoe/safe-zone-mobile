@@ -232,14 +232,14 @@ module.exports = {
 	plugins: [
 		function ({ addUtilities }) {
 			addUtilities({
-				'.font-bold': {
-					fontFamily: 'Inter-Bold',
+				".font-bold": {
+					fontFamily: "Inter-Bold",
 				},
-				'.font-semibold': {
-					fontFamily: 'Inter',
-					fontWeight: '600',
+				".font-semibold": {
+					fontFamily: "Inter",
+					fontWeight: "600",
 				},
-			})
+			});
 		},
 	],
 };
