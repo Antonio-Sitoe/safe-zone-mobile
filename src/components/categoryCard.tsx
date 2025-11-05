@@ -1,14 +1,15 @@
 import { View, Text, Pressable } from "react-native";
-import { Users, Edit2 } from "lucide-react-native";
+import { Users, Edit2, Trash2 } from "lucide-react-native";
 import type { CategoryCardProps } from "@/@types/Category";
 
 interface EnhancedCategoryCardProps extends CategoryCardProps {
 	onEdit?: () => void;
+	onDelete?: () => void;
 }
 
-export const CategoryCard = ({ name, count, onPress, onEdit }: EnhancedCategoryCardProps) => {
+export const CategoryCard = ({ name, count, onPress, onEdit, onDelete }: EnhancedCategoryCardProps) => {
 	return (
-		<View className="flex-row gap-4 items-center">
+		<View className="flex-row gap-2 items-center">
 			<Pressable
 				onPress={onPress}
 				className="bg-white flex-1 px-4 py-4 justify-center rounded-xl shadow-sm active:opacity-70 border border-gray-100 min-h-[80px]"
@@ -31,9 +32,20 @@ export const CategoryCard = ({ name, count, onPress, onEdit }: EnhancedCategoryC
 						e.stopPropagation();
 						onEdit();
 					}}
-					className="w-16 min-h-[80px] bg-app-primary rounded-xl border border-gray-100 items-center justify-center active:opacity-70"
+					className="w-14 min-h-[80px] bg-app-primary rounded-xl border border-gray-100 items-center justify-center active:opacity-70"
 				>
 					<Edit2 size={18} color="#FFFFFF" />
+				</Pressable>
+			)}
+			{onDelete && (
+				<Pressable
+					onPress={(e) => {
+						e.stopPropagation();
+						onDelete();
+					}}
+					className="w-14 min-h-[80px] bg-red-500 rounded-xl border border-gray-100 items-center justify-center active:opacity-70"
+				>
+					<Trash2 size={18} color="#FFFFFF" />
 				</Pressable>
 			)}
 		</View>

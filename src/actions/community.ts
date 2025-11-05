@@ -96,7 +96,19 @@ export const updateGroup = async (data: CreateGroupSchema, id: string) => {
 };
 export const deleteGroup = async (id: string) => {
 	try {
-		const response = api.delete(`/groups/${id}`);
+		const response = await api.delete(`/groups/${id}`);
+
+		return { data: response, error: false };
+	} catch (error: any) {
+		console.error({ error });
+
+		return { error: true, message: error.request.message };
+	}
+};
+
+export const deleteContact = async (contactId: string) => {
+	try {
+		const response = await api.delete(`/groups/contact/${contactId}`);
 
 		return { data: response, error: false };
 	} catch (error: any) {

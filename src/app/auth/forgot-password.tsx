@@ -40,10 +40,10 @@ const ForgotPassword = () => {
 		},
 	});
 
-	const onSubmit = async (_data: ForgotPasswordFormData) => {
+		const onSubmit = async (_data: ForgotPasswordFormData) => {
 		try {
 			if (authClient) {
-				const { data, error } = await authClient.forgetPassword({
+				const { data, error } = await authClient.requestPasswordReset({
 					email: _data.email,
 					redirectTo: "safezone://auth/reset-password?token={token}",
 				});
