@@ -28,6 +28,7 @@ import * as Haptics from 'expo-haptics'
 import Onboard1 from '@/assets/slide/slide-1.svg'
 import Onboard2 from '@/assets/slide/slide-2.svg'
 import Onboard3 from '@/assets/slide/slide-3.svg'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 const AUTO_PLAY_INTERVAL = 4500
 
@@ -389,45 +390,47 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" backgroundColor="#ffffff" />
+    <SafeAreaView className="flex-1">
+      <View style={styles.container}>
+        <StatusBar style="dark" backgroundColor="#ffffff" />
 
-      {onboardingData.map((_, index) => (
-        <BackgroundGradient key={`bg-${index}`} index={index} />
-      ))}
-
-      <PagerView
-        ref={pagerRef}
-        style={{ flex: 1 }}
-        initialPage={0}
-        onPageScroll={onPageScroll}
-        onPageSelected={onPageSelected}
-        offscreenPageLimit={2}
-      >
-        {onboardingData.map((item, index) => (
-          <View key={item.id} style={styles.page}>
-            <View style={styles.topSection}>
-              <AnimatedTitle index={index} />
-            </View>
-
-            <View style={styles.illustrationSection}>
-              <IllustrationComponent index={index} />
-            </View>
-
-            <View style={styles.bottomSection}>
-              <AnimatedSubtitle index={index} />
-              <PageIndicator />
-
-              {index === onboardingData.length - 1 && (
-                <View style={styles.buttonContainer}>
-                  <AnimatedButton />
-                </View>
-              )}
-            </View>
-          </View>
+        {onboardingData.map((_, index) => (
+          <BackgroundGradient key={`bg-${index}`} index={index} />
         ))}
-      </PagerView>
-    </View>
+
+        <PagerView
+          ref={pagerRef}
+          style={{ flex: 1 }}
+          initialPage={0}
+          onPageScroll={onPageScroll}
+          onPageSelected={onPageSelected}
+          offscreenPageLimit={2}
+        >
+          {onboardingData.map((item, index) => (
+            <View key={item.id} style={styles.page}>
+              <View style={styles.topSection}>
+                <AnimatedTitle index={index} />
+              </View>
+
+              <View style={styles.illustrationSection}>
+                <IllustrationComponent index={index} />
+              </View>
+
+              <View style={styles.bottomSection}>
+                <AnimatedSubtitle index={index} />
+                <PageIndicator />
+
+                {index === onboardingData.length - 1 && (
+                  <View style={styles.buttonContainer}>
+                    <AnimatedButton />
+                  </View>
+                )}
+              </View>
+            </View>
+          ))}
+        </PagerView>
+      </View>
+    </SafeAreaView>
   )
 }
 

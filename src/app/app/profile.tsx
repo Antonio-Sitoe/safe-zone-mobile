@@ -25,13 +25,14 @@ import {
   Lock,
   Eye,
   EyeOff,
+  Trash2,
 } from 'lucide-react-native'
-import { authClient } from '@/lib/auth'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useAuthStore } from '@/contexts/auth-store'
 import {
   updateUser,
   changePassword,
+  deactivateAccount,
   type UpdateUserData,
   type ChangePasswordData,
 } from '@/actions/auth'
@@ -40,11 +41,8 @@ import { Input, InputField } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { AxiosError } from 'axios'
 
-const { useSession } = authClient
-
 export default function ProfileScreen() {
-  const session = useSession()
-  const { logout, updateUser: updateUserStore } = useAuthStore()
+  const { logout, updateUser: updateUserStore, user } = useAuthStore()
   const [isEditMode, setIsEditMode] = useState(false)
   const [showPasswordSection, setShowPasswordSection] = useState(false)
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
@@ -52,8 +50,8 @@ export default function ProfileScreen() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
   const [formData, setFormData] = useState({
-    name: session.data?.user?.name || '',
-    image: session.data?.user?.image || '',
+    name: user?.name || '',
+    image: user?.image || '',
   })
 
   const [passwordData, setPasswordData] = useState({
@@ -62,30 +60,31 @@ export default function ProfileScreen() {
     confirmPassword: '',
   })
 
-  // Update form data when session changes
   useEffect(() => {
-    if (session.data?.user) {
+    if (user) {
       setFormData({
-        name: session.data.user.name || '',
-        image: session.data.user.image || '',
+        name: user?.name || '',
+        image: user?.image || '',
       })
     }
-  }, [session.data?.user])
+  }, [user])
 
   const updateUserMutation = useMutation({
     mutationFn: (data: UpdateUserData) => updateUser(data),
     onSuccess: (response) => {
-      if (response.data?.data) {
-        const updatedUser = response.data.data
+      if (response.data) {
+        const updatedUser = response.data
+        console.log('response', updatedUser)
+
         updateUserStore({
           name: updatedUser.name,
           image: updatedUser.image || undefined,
         })
-        Alert.alert('Sucesso', 'Perfil atualizado com sucesso!')
         setIsEditMode(false)
       }
     },
     onError: (error) => {
+      console.log(JSON.stringify(error, null, 2))
       const message =
         error instanceof AxiosError
           ? error.response?.data?.message || 'Erro ao atualizar perfil'
@@ -114,12 +113,57 @@ export default function ProfileScreen() {
     },
   })
 
+  const deactivateAccountMutation = useMutation({
+    mutationFn: () => deactivateAccount(),
+    onSuccess: () => {
+      Alert.alert(
+        'Conta Desativada',
+        'Sua conta foi desativada com sucesso. Você será desconectado.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              logout()
+            },
+          },
+        ]
+      )
+    },
+    onError: (error) => {
+      const message =
+        error instanceof AxiosError
+          ? error.response?.data?.message || 'Erro ao desativar conta'
+          : 'Erro ao desativar conta'
+      Alert.alert('Erro', message)
+    },
+  })
+
+  const handleDeactivateAccount = () => {
+    Alert.alert(
+      'Desativar Conta',
+      'Tem certeza que deseja desativar sua conta? Esta ação não pode ser desfeita e você precisará entrar em contato com o suporte para reativar sua conta.',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Desativar',
+          style: 'destructive',
+          onPress: () => {
+            deactivateAccountMutation.mutate()
+          },
+        },
+      ]
+    )
+  }
+
   const handleSave = () => {
     const updates: UpdateUserData = {}
-    if (formData.name !== session.data?.user?.name) {
+    if (formData.name !== user?.name) {
       updates.name = formData.name
     }
-    if (formData.image !== (session.data?.user?.image || '')) {
+    if (formData.image !== (user?.image || '')) {
       updates.image = formData.image
     }
 
@@ -148,9 +192,6 @@ export default function ProfileScreen() {
     })
   }
 
-  const user = session.data?.user
-
-  // Edit Mode View
   if (isEditMode) {
     return (
       <SafeAreaView className="flex-1 bg-white">
@@ -165,8 +206,8 @@ export default function ProfileScreen() {
                 <TouchableOpacity
                   onPress={() => {
                     setFormData({
-                      name: session.data?.user?.name || '',
-                      image: session.data?.user?.image || '',
+                      name: user?.name || '',
+                      image: user?.image || '',
                     })
                     setIsEditMode(false)
                   }}
@@ -194,7 +235,7 @@ export default function ProfileScreen() {
               </View>
 
               {/* User Info Form */}
-              <View className="px-6 space-y-6">
+              <View className="px-6 space-y-6 gap-3">
                 {/* Name */}
                 <View>
                   <Text className="text-sm font-medium text-gray-700 mb-2">
@@ -279,8 +320,8 @@ export default function ProfileScreen() {
                 <Button
                   onPress={() => {
                     setFormData({
-                      name: session.data?.user?.name || '',
-                      image: session.data?.user?.image || '',
+                      name: user?.name || '',
+                      image: user?.image || '',
                     })
                     setIsEditMode(false)
                   }}
@@ -310,7 +351,7 @@ export default function ProfileScreen() {
                   </TouchableOpacity>
 
                   {showPasswordSection && (
-                    <View className="space-y-4">
+                    <View className="space-y-4 gap-4">
                       {/* Current Password */}
                       <View>
                         <Text className="text-sm font-medium text-gray-700 mb-2">
@@ -448,10 +489,9 @@ export default function ProfileScreen() {
     )
   }
 
-  // View Mode (Default)
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1">
+      <ScrollView contentContainerClassName="pb-10">
         <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
           <View style={{ width: 32 }} />
           <Text className="text-lg font-semibold text-black">Perfil</Text>
@@ -469,15 +509,15 @@ export default function ProfileScreen() {
             <User size={50} color="white" />
           </View>
           <Text className="mt-3 text-base font-medium font-roboto text-black">
-            {session.data?.user.name}
+            {user?.name || 'Não informado'}
           </Text>
           <Text className="mt-1 text-sm text-gray-600">
-            {session.data?.user.email}
+            {user?.email || 'Não informado'}
           </Text>
         </View>
 
         {/* Menu Items */}
-        <View className="mt-8 space-y-8 flex-col gap-8 px-6">
+        <View className="mt-8 flex-1 space-y-8 flex-col gap-8 px-6">
           <MenuItem
             icon={<User size={22} color="#1D2C5E" />}
             text="Editar Perfil"
@@ -498,6 +538,13 @@ export default function ProfileScreen() {
           <MenuItem
             icon={<MessageSquare size={22} color="#1D2C5E" />}
             text="Sobre Nos"
+          />
+          <MenuItem
+            onPress={handleDeactivateAccount}
+            touchableOpacityClassName="bg-[#fefefe] rounded-lg"
+            textClassName="text-orange-600"
+            icon={<Trash2 size={22} color="#EA580C" />}
+            text="Desativar Conta"
           />
           <MenuItem
             onPress={logout}

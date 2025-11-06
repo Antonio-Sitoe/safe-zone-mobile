@@ -17,7 +17,6 @@ export default function AppLayout() {
             borderTopWidth: 1,
             paddingTop: 8,
             paddingBottom: Math.max(insets.bottom, 8),
-            height: 60 + Math.max(insets.bottom, 8),
           },
           tabBarActiveTintColor: '#1e40af',
           tabBarInactiveTintColor: '#64748b',
