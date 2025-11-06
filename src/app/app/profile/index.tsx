@@ -1,21 +1,22 @@
 import React from 'react'
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native'
+import { View, Text, TouchableOpacity, Alert, ScrollView } from 'react-native'
 import {
-  User,
-  MapPin,
   Tag,
+  User,
   Users,
-  MessageSquare,
-  LogOut,
   Edit2,
+  LogOut,
+  MapPin,
   Trash2,
+  MessageSquare,
 } from 'lucide-react-native'
-import { SafeAreaView } from 'react-native-safe-area-context'
-import { useAuthStore } from '@/contexts/auth-store'
-import { deactivateAccount } from '@/actions/auth'
-import { useMutation } from '@tanstack/react-query'
-import { AxiosError } from 'axios'
+
 import { router } from 'expo-router'
+import { AxiosError } from 'axios'
+import { useMutation } from '@tanstack/react-query'
+import { useAuthStore } from '@/contexts/auth-store'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { deactivateAccount } from '@/actions/auth'
 
 const MenuItem = ({
   icon,
@@ -45,6 +46,7 @@ const MenuItem = ({
 
 export default function ProfileScreen() {
   const { logout, user } = useAuthStore()
+  const insets = useSafeAreaInsets()
 
   const deactivateAccountMutation = useMutation({
     mutationFn: () => deactivateAccount(),
@@ -92,8 +94,13 @@ export default function ProfileScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <ScrollView contentContainerClassName="pb-10">
+    <View style={{ flex: 1 }} className="bg-white">
+      <ScrollView
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: 100,
+        }}
+      >
         <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
           <View style={{ width: 32 }} />
           <Text className="text-lg font-semibold text-black">Perfil</Text>
@@ -155,6 +162,6 @@ export default function ProfileScreen() {
           />
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   )
 }

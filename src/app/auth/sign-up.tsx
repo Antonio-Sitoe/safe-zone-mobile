@@ -83,7 +83,10 @@ const SignUp = () => {
         >
           <StatusBar style="auto" backgroundColor="#fff" animated={true} />
           <ScrollView
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 70 }}
+            contentContainerStyle={{
+              flexGrow: 1,
+              paddingBottom: 100,
+            }}
           >
             <View className="flex-1 flex-col justify-between px-6 pt-12 pb-8 space-y-8">
               <View className="mb-8 w-full">
