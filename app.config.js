@@ -35,6 +35,17 @@ export default {
 			"expo-web-browser",
 			"@maplibre/maplibre-react-native",
 			[
+				"expo-location",
+				{
+					locationAlwaysAndWhenInUsePermission:
+						"Permitir $(PRODUCT_NAME) usar sua localização para mostrar sua posição no mapa e zonas seguras/perigosas próximas.",
+					locationAlwaysPermission:
+						"Permitir $(PRODUCT_NAME) usar sua localização em segundo plano para alertas de segurança.",
+					locationWhenInUsePermission:
+						"Permitir $(PRODUCT_NAME) usar sua localização para mostrar sua posição no mapa.",
+				},
+			],
+			[
 				"expo-splash-screen",
 				{
 					image: "./src/assets/images/splash-icon.png",

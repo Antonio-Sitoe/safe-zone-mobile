@@ -15,7 +15,7 @@ import { router } from 'expo-router'
 import { AxiosError } from 'axios'
 import { useMutation } from '@tanstack/react-query'
 import { useAuthStore } from '@/contexts/auth-store'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { deactivateAccount } from '@/actions/auth'
 
 const MenuItem = ({
@@ -46,7 +46,6 @@ const MenuItem = ({
 
 export default function ProfileScreen() {
   const { logout, user } = useAuthStore()
-  const insets = useSafeAreaInsets()
 
   const deactivateAccountMutation = useMutation({
     mutationFn: () => deactivateAccount(),
@@ -94,7 +93,7 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={{ flex: 1 }} className="bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       <ScrollView
         contentContainerStyle={{
           flexGrow: 1,
@@ -162,6 +161,6 @@ export default function ProfileScreen() {
           />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   )
 }

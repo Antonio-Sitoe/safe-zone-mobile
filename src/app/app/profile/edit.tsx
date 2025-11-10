@@ -30,6 +30,7 @@ import {
   type UpdateProfileFormData,
   type ChangePasswordFormData,
 } from '@/utils/schemas/profile-schema'
+import { SafeAreaView } from 'react-native-safe-area-context'
 
 export default function EditProfileScreen() {
   const { user, updateUser: updateUserStore } = useAuthStore()
@@ -138,7 +139,7 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
@@ -458,6 +459,6 @@ export default function EditProfileScreen() {
           </KeyboardAwareScrollView>
         </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   )
 }

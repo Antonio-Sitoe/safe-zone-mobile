@@ -1,12 +1,9 @@
-import { SafeAreaView } from "react-native-safe-area-context";
-import { CardsGrid } from "@/components/cards/grid";
-import { Header } from "@/components/header";
+import MapComponent from '@/components/map'
+import { useGetAllZonesQuery } from '@/react-query/zone/zoneQuery'
 
-export default function Home() {
-	return (
-		<SafeAreaView className="flex-1 bg-white">
-			<Header />
-			<CardsGrid />
-		</SafeAreaView>
-	);
+export default function MapScreen() {
+  const { data: zonesData } = useGetAllZonesQuery()
+  const allZones = zonesData?.data || []
+
+  return <MapComponent variant={'danger'} zones={allZones} />
 }
