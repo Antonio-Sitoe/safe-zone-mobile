@@ -3,7 +3,7 @@ import { memo } from 'react'
 import type { RefObject } from 'react'
 import { StyleSheet } from 'react-native'
 import type { FeatureCollection } from 'geojson'
-import type { Coordinates } from '../store'
+import type { Coordinates } from '../types'
 import MarkerSvg from '../marker.svg'
 
 type MapCanvasProps = {
@@ -134,7 +134,7 @@ const circleLayerStyle: MapboxGL.CircleLayerStyle = {
 }
 
 const symbolLayerStyle: MapboxGL.SymbolLayerStyle = {
-  textField: ['concat', ['get', 'reports'], ' relatos'],
+  textField: ['get', 'slug'],
   textSize: 12,
   textColor: '#ffffff',
   textHaloColor: '#1c1c1c',
