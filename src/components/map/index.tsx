@@ -1,500 +1,653 @@
-import { useRouter } from 'expo-router'
-import MarkerSvg from './marker.svg'
-import * as MapLibreGL from '@maplibre/maplibre-react-native'
-import { useRef, useState, useEffect, useId, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
+  Platform,
+  StyleSheet,
   View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
   Alert,
+  Pressable,
+  Text,
 } from 'react-native'
-import type { Feature } from 'geojson'
-import type { Zone } from '@/@types/Zone'
+import MapboxGL from '@rnmapbox/maps'
 import * as Location from 'expo-location'
-import { Ionicons } from '@expo/vector-icons'
+import { useAuthStore } from '@/contexts/auth-store'
+import { env } from '@/lib/env'
+import { useMapStore } from './store'
+import { MapCanvas } from './components/MapCanvas'
+import { StyleToggleButton } from './components/StyleToggleButton'
+import { PermissionOverlay } from './components/PermissionOverlay'
+import { ShowCoordinateBanner } from './components/ShowCoordinateBanner'
+import { CenterOnUserButton } from './components/CenterOnUserButton'
+import { ZonesSheet } from './zone-section-list'
+import { ZoneModal } from './components/ZoneModal'
+import { CreateZoneSheet } from './components/CreateZoneSheet'
+import {
+  DEFAULT_COORDINATE,
+  parseReports,
+  distanceInMeters,
+  mapZoneToFeatureCollection,
+} from './utils'
+import type { Zone } from '@/@types/Zone'
+import type { Coordinates, ZoneType } from './store'
+import { CreateArea } from '@/components/modal/area-form'
+import type { SafeZoneData } from '@/@types/area'
 
-type LocationState = {
-  lat: number
-  lng: number
-  name: string
-} | null
+MapboxGL.setAccessToken(env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN)
 
-type Coordinates = {
-  latitude: number
-  longitude: number
+type MapComponentProps = {
+  zones?: Zone[]
 }
 
-export default function MapComponent({
-  variant,
-  zones = [],
-}: {
-  variant: 'safe' | 'danger'
-  zones?: Zone[]
-}) {
-  const userMarkerId = useId()
-  const selectedMarkerId = useId()
-  const mapRef = useRef<any>(null)
-  const cameraRef = useRef<any>(null)
-  const router = useRouter()
+export default function MapComponent({ zones = [] }: MapComponentProps) {
+  const { user } = useAuthStore()
+  const cameraRef = useRef<MapboxGL.Camera | null>(null)
 
-  const [selectedLocation, setSelectedLocation] = useState<LocationState>(null)
-  const [isLoading, setIsLoading] = useState(false)
-  const [userLocation, setUserLocation] = useState<Coordinates | null>(null)
-  const [draggableMarkerLocation, setDraggableMarkerLocation] =
-    useState<Coordinates | null>(null)
-  const [isLoadingLocation, setIsLoadingLocation] = useState(true)
-  const locationSubscriptionRef = useRef<Location.LocationSubscription | null>(
-    null
-  )
+  const {
+    isCheckingPermission,
+    hasPermission,
+    userCoordinate,
+    mapStyle,
+    zones: storeZones,
+    isZoneModalVisible,
+    pendingCoordinate,
+    zoneDescription,
+    zoneReports,
+    zoneType,
+    editingZoneSlug,
+    selectedLocationName,
+    setCheckingPermission,
+    setHasPermission,
+    setUserCoordinate,
+    toggleMapStyle,
+    setZones,
+    setZoneModalVisible,
+    setPendingCoordinate,
+    setZoneDescription,
+    setZoneReports,
+    setZoneType,
+    setEditingZoneSlug,
+    setLoadingLocation,
+    resetZoneForm,
+    setSelectedLocationName,
+    isZonesSheetOpen,
+    setZonesSheetOpen,
+  } = useMapStore()
+
+  // Initialize zones from props
+  useEffect(() => {
+    if (zones.length > 0) {
+      const mappedZones = zones.map((zone) => ({
+        slug: zone.slug || zone.id || '',
+        date: zone.date,
+        hour: zone.hour,
+        description: zone.description,
+        type: zone.type as ZoneType,
+        reports: zone.reports ?? 0,
+        coordinates: zone.coordinates,
+        geom: {
+          x: zone.coordinates?.longitude,
+          y: zone.coordinates?.latitude,
+        },
+        createdBy: user?.id,
+        id: zone.id,
+      }))
+      setZones(mappedZones)
+    }
+  }, [zones, user?.id, setZones])
 
   // Request location permissions
   useEffect(() => {
-    requestLocationPermission()
-    return () => {
-      if (locationSubscriptionRef.current) {
-        locationSubscriptionRef.current.remove()
-      }
-    }
-  }, [])
+    let isMounted = true
 
-  const requestLocationPermission = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync()
-      if (status !== 'granted') {
-        Alert.alert(
-          'Permissão Negada',
-          'É necessário permitir o acesso à localização para usar este recurso.',
-          [{ text: 'OK' }]
-        )
-        setIsLoadingLocation(false)
-        return
-      }
-
-      // Get initial location
-      const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High,
-      })
-
-      const coords: Coordinates = {
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      }
-
-      setUserLocation(coords)
-      setDraggableMarkerLocation(coords)
-      setIsLoadingLocation(false)
-
-      // Start watching location for real-time updates
-      const subscription = await Location.watchPositionAsync(
-        {
-          accuracy: Location.Accuracy.High,
-          timeInterval: 5000, // Update every 5 seconds
-          distanceInterval: 10, // Or every 10 meters
-        },
-        (newLocation) => {
-          const newCoords: Coordinates = {
-            latitude: newLocation.coords.latitude,
-            longitude: newLocation.coords.longitude,
-          }
-          setUserLocation(newCoords)
-          // Only update draggable marker if user hasn't manually moved it
-          // We'll track this with a flag
+    const requestPermissionsAndLocation = async () => {
+      try {
+        if (Platform.OS === 'android') {
+          await MapboxGL.requestAndroidLocationPermissions()
         }
-      )
 
-      locationSubscriptionRef.current = subscription
+        const { status } = await Location.requestForegroundPermissionsAsync()
+        if (!isMounted) return
 
-      // Center camera on user location
-      if (cameraRef.current) {
-        cameraRef.current.setCamera({
-          centerCoordinate: [
-            location.coords.longitude,
-            location.coords.latitude,
-          ],
-          zoomLevel: 15,
-          animationDuration: 1000,
+        const granted = status === 'granted'
+        setHasPermission(granted)
+
+        if (!granted) {
+          setCheckingPermission(false)
+          setLoadingLocation(false)
+          return
+        }
+
+        const currentLocation = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
         })
+
+        if (!isMounted) return
+
+        setUserCoordinate([
+          currentLocation.coords.longitude,
+          currentLocation.coords.latitude,
+        ])
+        setCheckingPermission(false)
+        setLoadingLocation(false)
+      } catch (error) {
+        console.warn('Erro a obter localização do utilizador:', error)
+        if (isMounted) {
+          setHasPermission(false)
+          setCheckingPermission(false)
+          setLoadingLocation(false)
+        }
       }
-    } catch (error) {
-      console.error('Error getting location:', error)
-      Alert.alert('Erro', 'Não foi possível obter sua localização.')
-      setIsLoadingLocation(false)
     }
+
+    requestPermissionsAndLocation()
+
+    return () => {
+      isMounted = false
+    }
+  }, [
+    setHasPermission,
+    setUserCoordinate,
+    setCheckingPermission,
+    setLoadingLocation,
+  ])
+
+  const cameraCoordinate = useMemo<Coordinates>(
+    () => userCoordinate ?? DEFAULT_COORDINATE,
+    [userCoordinate]
+  )
+
+  const zoomLevel = userCoordinate ? 15 : 4
+  const isSatelliteStyle = mapStyle === MapboxGL.StyleURL.SatelliteStreet
+
+  const zoneFeatureCollection = useMemo(() => {
+    return mapZoneToFeatureCollection(storeZones)
+  }, [storeZones])
+
+  const [isCreateZoneSheetOpen, setCreateZoneSheetOpen] = useState(false)
+  const [isCreateAreaVisible, setCreateAreaVisible] = useState(false)
+  const [createAreaVariant, setCreateAreaVariant] = useState<'safe' | 'danger'>(
+    'safe'
+  )
+
+  const handleMapLongPress = (event: {
+    geometry: { coordinates: Coordinates }
+  }) => {
+    setZonesSheetOpen(false)
+    const [longitude, latitude] = event.geometry.coordinates
+    setPendingCoordinate([longitude, latitude])
+    setZoneDescription('')
+    setZoneReports('0')
+    setZoneType('SAFE')
+    setEditingZoneSlug(null)
+    setSelectedLocationName(null)
+    setZoneModalVisible(false)
+    setCreateAreaVariant('safe')
+    setCreateAreaVisible(false)
+    setCreateZoneSheetOpen(true)
   }
 
-  const handleMapPress = useCallback((feature: Feature) => {
-    setIsLoading(true)
-    const { geometry } = feature
+  const handleCloseZoneModal = () => {
+    resetZoneForm()
+  }
 
-    if (geometry.type !== 'Point') return
+  const handleSaveZone = () => {
+    if (!pendingCoordinate) {
+      Alert.alert(
+        'Coordenadas não definidas',
+        'Toque e segure no mapa para escolher a localização da zona.'
+      )
+      return
+    }
 
-    const [lng, lat] = geometry.coordinates
+    if (!zoneDescription.trim()) {
+      Alert.alert(
+        'Descrição obrigatória',
+        'Adicione uma descrição para identificar a zona.'
+      )
+      return
+    }
 
-    // Update draggable marker position
-    setDraggableMarkerLocation({ latitude: lat, longitude: lng })
+    const reportsValue = parseReports(zoneReports)
+    const baseType: ZoneType =
+      reportsValue >= 10 ? 'CRITICAL' : zoneType ?? 'SAFE'
 
-    // Fetch location name
-    fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
-      {
-        headers: {
-          'User-Agent': 'SafeZoneMobileApp/1.0',
-          Accept: 'application/json',
-        },
-      }
-    )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+    const now = new Date()
+
+    if (editingZoneSlug) {
+      const currentZones = storeZones
+      const updatedZones = currentZones.map((zone) => {
+        if (zone.slug !== editingZoneSlug) {
+          return zone
         }
-        return response.json()
-      })
-      .then((data) => {
-        const locationName = data.display_name || 'Local Desconhecido'
-        setSelectedLocation({
-          lat,
-          lng,
-          name: locationName,
-        })
-      })
-      .catch((error) => {
-        console.error('Error fetching location name:', error)
-        setSelectedLocation({
-          lat,
-          lng,
-          name: `Local: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-        })
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
-  }, [])
 
-  const handleMarkerDragEnd = useCallback((event: any) => {
-    const coordinates = event.geometry.coordinates as [number, number]
-    const [lng, lat] = coordinates
-
-    setDraggableMarkerLocation({ latitude: lat, longitude: lng })
-    setIsLoading(true)
-
-    // Fetch location name for new position
-    fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
-      {
-        headers: {
-          'User-Agent': 'SafeZoneMobileApp/1.0',
-          Accept: 'application/json',
-        },
-      }
-    )
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+        if (zone.createdBy !== user?.id) {
+          Alert.alert(
+            'Ação não permitida',
+            'Só é possível editar zonas que criaste.'
+          )
+          return zone
         }
-        return response.json()
-      })
-      .then((data) => {
-        const locationName = data.display_name || 'Local Desconhecido'
-        setSelectedLocation({
-          lat,
-          lng,
-          name: locationName,
-        })
-      })
-      .catch((error) => {
-        console.error('Error fetching location name:', error)
-        setSelectedLocation({
-          lat,
-          lng,
-          name: `Local: ${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-        })
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
-  }, [])
 
-  const handleCenterOnUser = useCallback(() => {
-    if (userLocation && cameraRef.current) {
+        return {
+          ...zone,
+          description: zoneDescription.trim(),
+          reports: reportsValue,
+          type: baseType,
+          date: now.toISOString().split('T')[0],
+          hour: now.toTimeString().slice(0, 5),
+          coordinates: {
+            latitude: pendingCoordinate[1],
+            longitude: pendingCoordinate[0],
+          },
+          geom: {
+            x: pendingCoordinate[0],
+            y: pendingCoordinate[1],
+          },
+        }
+      })
+      setZones(updatedZones)
+      handleCloseZoneModal()
+      return
+    }
+
+    const newZone = {
+      slug: `zona-${now.getTime()}`,
+      date: now.toISOString().split('T')[0],
+      hour: now.toTimeString().slice(0, 5),
+      description: zoneDescription.trim(),
+      type: baseType,
+      reports: reportsValue,
+      coordinates: {
+        latitude: pendingCoordinate[1],
+        longitude: pendingCoordinate[0],
+      },
+      geom: {
+        x: pendingCoordinate[0],
+        y: pendingCoordinate[1],
+      },
+      createdBy: user?.id || 'unknown',
+    }
+
+    const MERGE_THRESHOLD_METERS = 200
+
+    const currentZones = storeZones
+    const existingIndex = currentZones.findIndex((zone) => {
+      const currentCoord: Coordinates = [
+        zone.geom?.x ?? zone.coordinates?.longitude,
+        zone.geom?.y ?? zone.coordinates?.latitude,
+      ]
+      return (
+        distanceInMeters(currentCoord, pendingCoordinate) <
+        MERGE_THRESHOLD_METERS
+      )
+    })
+
+    if (existingIndex >= 0) {
+      const existing = currentZones[existingIndex]
+      const mergedReports = (existing.reports ?? 0) + newZone.reports
+      const mergedZone = {
+        ...existing,
+        description: `${existing.description || ''}\n• ${newZone.description}`,
+        reports: mergedReports,
+        type: mergedReports >= 10 ? 'CRITICAL' : existing.type,
+      }
+
+      const updated = [...currentZones]
+      updated[existingIndex] = mergedZone
+      setZones(updated)
+    } else {
+      setZones([...currentZones, newZone])
+    }
+
+    handleCloseZoneModal()
+  }
+
+  const handleEditZone = (zone: (typeof storeZones)[0]) => {
+    if (zone.createdBy !== user?.id) {
+      Alert.alert('Ação não permitida', 'Só podes editar zonas que criaste.')
+      return
+    }
+
+    setEditingZoneSlug(zone.slug)
+    setPendingCoordinate([
+      zone.geom?.x ?? zone.coordinates?.longitude,
+      zone.geom?.y ?? zone.coordinates?.latitude,
+    ])
+    setZoneDescription(zone.description || '')
+    setZoneReports(String(zone.reports ?? 0))
+    setZoneType(zone.type)
+    setZoneModalVisible(true)
+  }
+
+  const handleCloseCreateZoneSheet = () => {
+    setCreateZoneSheetOpen(false)
+    setCreateAreaVisible(false)
+    setPendingCoordinate(null)
+  }
+
+  const handleSelectCreateZone = (variant: 'safe' | 'danger') => {
+    if (!pendingCoordinate) {
+      setCreateZoneSheetOpen(false)
+      return
+    }
+
+    setCreateAreaVariant(variant)
+    setZoneType(variant === 'danger' ? 'DANGER' : 'SAFE')
+    setCreateZoneSheetOpen(false)
+    setCreateAreaVisible(true)
+  }
+
+  const handleCloseCreateArea = () => {
+    setCreateAreaVisible(false)
+    setCreateZoneSheetOpen(false)
+    setPendingCoordinate(null)
+    setZoneDescription('')
+    setZoneReports('0')
+    setZoneType('SAFE')
+    setEditingZoneSlug(null)
+  }
+
+  const handleSaveCreateArea = (data: SafeZoneData) => {
+    if (!pendingCoordinate) {
+      Alert.alert(
+        'Coordenadas não definidas',
+        'Toque e segure no mapa para escolher a localização da zona.'
+      )
+      return
+    }
+
+    const [longitude, latitude] = pendingCoordinate
+    const now = new Date()
+    const zoneDate = data.date || now.toISOString().split('T')[0]
+    const zoneHour = data.time || now.toTimeString().slice(0, 5)
+
+    const zoneTypeValue: ZoneType =
+      createAreaVariant === 'danger' ? 'DANGER' : 'SAFE'
+
+    const newZone = {
+      slug: `zona-${now.getTime()}`,
+      date: zoneDate,
+      hour: zoneHour,
+      description: data.description.trim(),
+      type: zoneTypeValue,
+      reports: zoneTypeValue === 'DANGER' ? 1 : 0,
+      coordinates: {
+        latitude,
+        longitude,
+      },
+      geom: {
+        x: longitude,
+        y: latitude,
+      },
+      createdBy: user?.id || 'unknown',
+    }
+
+    const MERGE_THRESHOLD_METERS = 200
+
+    const currentZones = storeZones
+    const existingIndex = currentZones.findIndex((zone) => {
+      const currentCoord: Coordinates = [
+        zone.geom?.x ?? zone.coordinates?.longitude,
+        zone.geom?.y ?? zone.coordinates?.latitude,
+      ]
+      return (
+        distanceInMeters(currentCoord, pendingCoordinate) <
+        MERGE_THRESHOLD_METERS
+      )
+    })
+
+    if (existingIndex >= 0) {
+      const existing = currentZones[existingIndex]
+      const mergedReports = (existing.reports ?? 0) + (newZone.reports ?? 0)
+      const mergedZone = {
+        ...existing,
+        description: `${existing.description || ''}\n• ${newZone.description}`,
+        reports: mergedReports,
+        type: mergedReports >= 10 ? 'CRITICAL' : existing.type,
+        date: zoneDate,
+        hour: zoneHour,
+      }
+
+      const updated = [...currentZones]
+      updated[existingIndex] = mergedZone
+      setZones(updated)
+    } else {
+      setZones([...currentZones, newZone])
+    }
+
+    setCreateAreaVisible(false)
+    setPendingCoordinate(null)
+    setZoneDescription('')
+    setZoneReports('0')
+    setZoneType('SAFE')
+    setEditingZoneSlug(null)
+    setSelectedLocationName(data.location || null)
+  }
+
+  const requestDeleteZone = (zone: (typeof storeZones)[0]) => {
+    if (zone.createdBy !== user?.id) {
+      Alert.alert('Ação não permitida', 'Só podes eliminar zonas que criaste.')
+      return
+    }
+
+    Alert.alert(
+      'Eliminar zona',
+      `Tens a certeza que queres eliminar ${zone.description || 'esta zona'}?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: () => {
+            const filtered = storeZones.filter(
+              (existingZone) => existingZone.slug !== zone.slug
+            )
+            setZones(filtered)
+          },
+        },
+      ]
+    )
+  }
+
+  const flyToCoordinate = ([longitude, latitude]: Coordinates) => {
+    cameraRef.current?.setCamera({
+      centerCoordinate: [longitude, latitude],
+      zoomLevel: 14,
+      animationDuration: 1200,
+    })
+  }
+
+  const handleCenterOnUser = () => {
+    if (userCoordinate && cameraRef.current) {
       cameraRef.current.setCamera({
-        centerCoordinate: [userLocation.longitude, userLocation.latitude],
+        centerCoordinate: userCoordinate,
         zoomLevel: 15,
         animationDuration: 1000,
       })
     }
-  }, [userLocation])
-
-  const handleCancel = () => {
-    setSelectedLocation(null)
-    router.back()
   }
 
-  const handleMark = () => {
-    if (!selectedLocation) return
-    router.navigate({
-      pathname:
-        variant === 'safe' ? '/app/home/safeZone' : '/app/home/dangerousZone',
-      params: {
-        modalIsOpen: 'true',
-        lat: selectedLocation.lat.toString(),
-        lng: selectedLocation.lng.toString(),
-        name: selectedLocation.name,
-      },
-    })
-  }
+  const createAreaLocation = useMemo(() => {
+    if (!pendingCoordinate) {
+      return null
+    }
 
-  const mapStyleJSON = {
-    version: 8,
-    sources: {
-      osm: {
-        type: 'raster',
-        tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-        tileSize: 256,
-        attribution: '© OpenStreetMap contributors',
-      },
-    },
-    layers: [
-      {
-        id: 'osm',
-        type: 'raster',
-        source: 'osm',
-        minzoom: 0,
-        maxzoom: 19,
-      },
-    ],
-  }
+    const [longitude, latitude] = pendingCoordinate
+    return {
+      name:
+        selectedLocationName ??
+        `Lat ${latitude.toFixed(5)}, Lng ${longitude.toFixed(5)}`,
+      latitude,
+      longitude,
+    }
+  }, [pendingCoordinate, selectedLocationName])
 
-  const displayCoords = draggableMarkerLocation || userLocation
+  useEffect(() => {
+    if (pendingCoordinate) {
+      setZonesSheetOpen(false)
+    }
+  }, [pendingCoordinate, setZonesSheetOpen])
 
   return (
-    <View className="flex-1 bg-gray-900">
-      {isLoadingLocation ? (
-        <View className="flex-1 justify-center items-center bg-gray-900">
-          <ActivityIndicator size="large" color="#1F346C" />
-          <Text className="text-white mt-4 text-base">
-            Obtendo localização...
-          </Text>
-        </View>
-      ) : (
-        <>
-          <MapLibreGL.MapView
-            ref={mapRef}
-            style={{ flex: 1 }}
-            mapStyle={mapStyleJSON}
-            onPress={handleMapPress}
-          >
-            <MapLibreGL.Camera
-              ref={cameraRef}
-              zoomLevel={15}
-              centerCoordinate={
-                userLocation
-                  ? [userLocation.longitude, userLocation.latitude]
-                  : [32.5892, -25.9653]
-              }
-              animationMode="flyTo"
-              animationDuration={2000}
-            />
+    <View style={styles.container}>
+      <MapCanvas
+        mapStyle={mapStyle}
+        cameraCoordinate={cameraCoordinate}
+        zoomLevel={zoomLevel}
+        onLongPress={handleMapLongPress}
+        zoneShape={zoneFeatureCollection}
+        isZonesVisible={storeZones.length > 0}
+        userCoordinate={userCoordinate}
+        cameraRef={cameraRef}
+        selectedCoordinate={pendingCoordinate || null}
+      />
 
-            {/* User's current location marker (real-time) */}
-            {userLocation && (
-              <MapLibreGL.PointAnnotation
-                id={userMarkerId}
-                coordinate={[userLocation.longitude, userLocation.latitude]}
-              >
-                <View className="items-center justify-center">
-                  {/* Outer pulsing circle */}
-                  <View
-                    className="absolute"
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 20,
-                      backgroundColor: '#10B981',
-                      opacity: 0.3,
-                    }}
-                  />
-                  {/* Inner circle */}
-                  <View
-                    style={{
-                      width: 24,
-                      height: 24,
-                      borderRadius: 12,
-                      backgroundColor: '#10B981',
-                      borderWidth: 3,
-                      borderColor: 'white',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 3.84,
-                      elevation: 5,
-                    }}
-                  >
-                    <Text
-                      className="text-white font-bold text-xs"
-                      style={{
-                        textAlign: 'center',
-                        lineHeight: 18,
-                      }}
-                    >
-                      A
-                    </Text>
-                  </View>
-                  {/* Teardrop pointer */}
-                  <View
-                    style={{
-                      position: 'absolute',
-                      top: 22,
-                      width: 0,
-                      height: 0,
-                      borderLeftWidth: 4,
-                      borderRightWidth: 4,
-                      borderTopWidth: 8,
-                      borderLeftColor: 'transparent',
-                      borderRightColor: 'transparent',
-                      borderTopColor: '#10B981',
-                    }}
-                  />
-                </View>
-              </MapLibreGL.PointAnnotation>
-            )}
+      <View style={styles.topControls}>
+        <ShowCoordinateBanner
+          coordinates={pendingCoordinate || userCoordinate}
+          locationName={selectedLocationName}
+          buttonTextStyle={styles.controlButtonText}
+        />
 
-            {/* Draggable marker */}
-            {draggableMarkerLocation && (
-              <MapLibreGL.PointAnnotation
-                id={selectedMarkerId}
-                coordinate={[
-                  draggableMarkerLocation.longitude,
-                  draggableMarkerLocation.latitude,
-                ]}
-                draggable
-                onDragEnd={handleMarkerDragEnd}
-              >
-                <View className="items-center justify-center">
-                  <MarkerSvg width={32} height={48} />
-                </View>
-              </MapLibreGL.PointAnnotation>
-            )}
+        <StyleToggleButton
+          isSatellite={isSatelliteStyle}
+          onToggle={toggleMapStyle}
+          style={styles.controlButton}
+        />
+      </View>
 
-            {/* Zone markers */}
-            {zones.map((zone) => {
-              const isCritical = zone.type === 'DANGER' // You can add logic to check if zone has 10+ reports
-              const markerColor =
-                zone.type === 'SAFE'
-                  ? '#4CAF50'
-                  : isCritical
-                  ? '#DC2626'
-                  : '#F44336'
+      <PermissionOverlay
+        isChecking={isCheckingPermission}
+        hasPermission={hasPermission}
+      />
 
-              return (
-                <MapLibreGL.PointAnnotation
-                  key={zone.id}
-                  id={`zone-${zone.id}`}
-                  coordinate={[
-                    zone.coordinates.longitude,
-                    zone.coordinates.latitude,
-                  ]}
-                >
-                  <View
-                    style={{
-                      width: isCritical ? 24 : 20,
-                      height: isCritical ? 24 : 20,
-                      borderRadius: isCritical ? 12 : 10,
-                      backgroundColor: markerColor,
-                      borderWidth: 3,
-                      borderColor: 'white',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.25,
-                      shadowRadius: 3.84,
-                      elevation: 5,
-                    }}
-                  />
-                </MapLibreGL.PointAnnotation>
-              )
-            })}
-          </MapLibreGL.MapView>
+      <CenterOnUserButton
+        onPress={handleCenterOnUser}
+        isVisible={!!userCoordinate}
+      />
 
-          {/* Coordinates Display Card */}
-          {displayCoords && (
-            <View className="absolute top-12 left-4 right-4">
-              <View className="bg-gray-800/95 rounded-xl p-4 shadow-lg border border-gray-700">
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-1">
-                    <Text className="text-gray-400 text-xs mb-1">
-                      Coordenadas
-                    </Text>
-                    <Text className="text-white font-mono text-sm">
-                      Lat: {displayCoords.latitude.toFixed(6)}
-                    </Text>
-                    <Text className="text-white font-mono text-sm">
-                      Lng: {displayCoords.longitude.toFixed(6)}
-                    </Text>
-                  </View>
-                  {selectedLocation && (
-                    <View className="ml-4">
-                      <Text className="text-gray-400 text-xs mb-1">Local</Text>
-                      <Text
-                        className="text-white text-xs"
-                        numberOfLines={2}
-                        style={{ maxWidth: 150 }}
-                      >
-                        {selectedLocation.name}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            </View>
-          )}
-
-          {/* Center on user button */}
-          {userLocation && (
-            <TouchableOpacity
-              onPress={handleCenterOnUser}
-              className="absolute bottom-32 right-4 bg-gray-800/90 rounded-full p-3 shadow-lg border border-gray-700"
-              style={{
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.25,
-                shadowRadius: 3.84,
-                elevation: 5,
-              }}
-            >
-              <Ionicons name="locate" size={24} color="#10B981" />
-            </TouchableOpacity>
-          )}
-
-          {/* Bottom Action Bar */}
-          <View className="absolute bottom-0 left-0 right-0 bg-gray-800/95 border-t border-gray-700">
-            <View className="flex-row justify-between p-4 pb-8">
-              <TouchableOpacity
-                className="flex-1 bg-gray-700 mx-2 py-4 rounded-lg items-center"
-                onPress={handleCancel}
-              >
-                <Text className="text-white font-bold">Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                className="flex-1 mx-2 py-4 rounded-lg items-center flex-row justify-center"
-                style={[
-                  {
-                    backgroundColor: selectedLocation ? '#10B981' : '#6B7280',
-                  },
-                ]}
-                onPress={handleMark}
-                disabled={!selectedLocation}
-              >
-                {isLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text className="text-white font-bold">Marcar</Text>
-                )}
-              </TouchableOpacity>
-            </View>
+      {!pendingCoordinate && !isZonesSheetOpen && (
+        <Pressable
+          onPress={() => setZonesSheetOpen(true)}
+          style={styles.zonesPill}
+        >
+          <View style={styles.zonesPillContent}>
+            <Text style={styles.zonesPillTitle}>Zonas monitorizadas</Text>
+            <Text style={styles.zonesPillSubtitle}>
+              {storeZones.length === 0
+                ? 'Sem zonas registadas'
+                : `${storeZones.length} zona${
+                    storeZones.length === 1 ? '' : 's'
+                  }`}
+            </Text>
           </View>
-        </>
+          <View style={styles.zonesPillAction}>
+            <Text style={styles.zonesPillActionText}>Ver</Text>
+          </View>
+        </Pressable>
       )}
+
+      <ZonesSheet
+        isOpen={isZonesSheetOpen && !pendingCoordinate}
+        currentUserId={user?.id || null}
+        onClose={() => setZonesSheetOpen(false)}
+        onLocate={flyToCoordinate}
+        onEdit={handleEditZone}
+        onDelete={requestDeleteZone}
+      />
+
+      <CreateZoneSheet
+        isOpen={isCreateZoneSheetOpen}
+        onClose={handleCloseCreateZoneSheet}
+        onSelect={handleSelectCreateZone}
+        coordinate={pendingCoordinate}
+      />
+
+      <ZoneModal
+        visible={isZoneModalVisible}
+        pendingCoordinate={pendingCoordinate}
+        zoneDescription={zoneDescription}
+        zoneReports={zoneReports}
+        zoneType={zoneType}
+        editingZoneSlug={editingZoneSlug}
+        onChangeDescription={setZoneDescription}
+        onChangeReports={setZoneReports}
+        onSelectType={setZoneType}
+        onRequestClose={handleCloseZoneModal}
+        onSave={handleSaveZone}
+      />
+
+      <CreateArea
+        visible={isCreateAreaVisible}
+        onClose={handleCloseCreateArea}
+        onSave={handleSaveCreateArea}
+        variant={createAreaVariant}
+        location={createAreaLocation}
+      />
     </View>
   )
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#000',
+  },
+  topControls: {
+    position: 'absolute',
+    top: 32,
+    right: 24,
+    flexDirection: 'row',
+    gap: 12,
+  },
+  controlButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 24,
+    backgroundColor: 'rgba(0, 0, 0, 0.72)',
+  },
+  controlButtonText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  zonesPill: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 32,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(17, 24, 39, 0.92)',
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    overflow: 'hidden',
+  },
+  zonesPillContent: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    gap: 4,
+  },
+  zonesPillTitle: {
+    color: '#F9FAFB',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  zonesPillSubtitle: {
+    color: '#E5E7EB',
+    fontSize: 12,
+  },
+  zonesPillAction: {
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#2563EB',
+  },
+  zonesPillActionText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+})

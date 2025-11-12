@@ -35,6 +35,14 @@ export default {
 			"expo-web-browser",
 			"@maplibre/maplibre-react-native",
 			[
+				"@rnmapbox/maps",
+				{
+					"android": {
+						"accessToken": "sk.eyJ1IjoidWJpbW96IiwiYSI6ImNtMHV5dnU3ajE2bjYycXMwcGEycWU1dDEifQ.-Jz3Qd2fwJeaz0L4o8Km7A"
+					}
+				}
+			],
+			[
 				"expo-location",
 				{
 					locationAlwaysAndWhenInUsePermission:

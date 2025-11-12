@@ -5,6 +5,7 @@ export interface Zone {
 	hour: string;
 	description: string;
 	type: "SAFE" | "DANGER";
+	reports?: number;
 	coordinates: {
 		latitude: number;
 		longitude: number;
