@@ -1,100 +1,106 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import {
-  Platform,
-  StyleSheet,
-  View,
-  Alert,
-  Pressable,
-  Text,
-} from 'react-native'
-import MapboxGL from '@rnmapbox/maps'
-import * as Location from 'expo-location'
-import { useAuthStore } from '@/contexts/auth-store'
-import { env } from '@/lib/env'
-import { useMapStore } from './store'
-import { MapCanvas } from './components/MapCanvas'
-import { StyleToggleButton } from './components/StyleToggleButton'
-import { PermissionOverlay } from './components/PermissionOverlay'
-import { ShowCoordinateBanner } from './components/ShowCoordinateBanner'
-import { CenterOnUserButton } from './components/CenterOnUserButton'
-import { ZonesSheet } from './zone-section-list'
-import { ZoneModal } from './components/ZoneModal'
-import { CreateZoneSheet } from './components/CreateZoneSheet'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Platform, View, Alert, Pressable, Text } from 'react-native'
+
 import {
   DEFAULT_COORDINATE,
   parseReports,
   distanceInMeters,
   mapZoneToFeatureCollection,
 } from './utils'
-import type { Zone } from '@/@types/Zone'
-import type { Coordinates, ZoneType } from './store'
+
+import MapboxGL from '@rnmapbox/maps'
+import * as Location from 'expo-location'
+import { useAuthStore } from '@/contexts/auth-store'
+import { env } from '@/lib/env'
+import { MapCanvas } from './components/MapCanvas'
+import { ZoneModal } from './components/ZoneModal'
+import { ZonesSheet } from './components/zone-list-section'
+import { CreateZoneSheet } from './components/CreateZoneSheet'
+import { PermissionOverlay } from './components/PermissionOverlay'
+import { StyleToggleButton } from './components/StyleToggleButton'
+import { CenterOnUserButton } from './components/CenterOnUserButton'
 import { CreateArea } from '@/components/modal/area-form'
 import type { SafeZoneData } from '@/@types/area'
+import { getAllZones } from '@/actions/zone'
+import { useQuery } from '@tanstack/react-query'
+import { Coordinates, Zone, ZoneType } from './types'
 
 MapboxGL.setAccessToken(env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN)
 
-type MapComponentProps = {
-  zones?: Zone[]
-}
-
-export default function MapComponent({ zones = [] }: MapComponentProps) {
+export default function MapComponent() {
   const { user } = useAuthStore()
+
+  const { data: zonesData } = useQuery({
+    queryKey: ['zones', 'all'],
+    queryFn: async () => await getAllZones(),
+  })
+
+  const zonesFromBackend = useMemo(() => {
+    return zonesData?.data || []
+  }, [zonesData?.data])
+
   const cameraRef = useRef<MapboxGL.Camera | null>(null)
 
-  const {
-    isCheckingPermission,
-    hasPermission,
-    userCoordinate,
-    mapStyle,
-    zones: storeZones,
-    isZoneModalVisible,
-    pendingCoordinate,
-    zoneDescription,
-    zoneReports,
-    zoneType,
-    editingZoneSlug,
-    selectedLocationName,
-    setCheckingPermission,
-    setHasPermission,
-    setUserCoordinate,
-    toggleMapStyle,
-    setZones,
-    setZoneModalVisible,
-    setPendingCoordinate,
-    setZoneDescription,
-    setZoneReports,
-    setZoneType,
-    setEditingZoneSlug,
-    setLoadingLocation,
-    resetZoneForm,
-    setSelectedLocationName,
-    isZonesSheetOpen,
-    setZonesSheetOpen,
-  } = useMapStore()
+  const [isCheckingPermission, setIsCheckingPermission] = useState(true)
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null)
+  const [userCoordinate, setUserCoordinate] = useState<Coordinates | null>(null)
+  const [mapStyle, setMapStyle] = useState<string>(
+    MapboxGL.StyleURL.SatelliteStreet
+  )
+  const [zones, setZones] = useState<Zone[]>([])
+  const [isZoneModalVisible, setZoneModalVisible] = useState(false)
+  const [pendingCoordinate, setPendingCoordinate] =
+    useState<Coordinates | null>(null)
+  const [zoneDescription, setZoneDescription] = useState('')
+  const [zoneReports, setZoneReports] = useState('0')
+  const [zoneType, setZoneType] = useState<ZoneType>('SAFE')
+  const [editingZoneSlug, setEditingZoneSlug] = useState<string | null>(null)
+  const [selectedLocationName, setSelectedLocationName] = useState<
+    string | null
+  >(null)
+  const [isZonesSheetOpen, setZonesSheetOpen] = useState(false)
+  const toggleMapStyle = useCallback(() => {
+    setMapStyle((current) =>
+      current === MapboxGL.StyleURL.SatelliteStreet
+        ? MapboxGL.StyleURL.Street
+        : MapboxGL.StyleURL.SatelliteStreet
+    )
+  }, [])
 
-  // Initialize zones from props
+  const resetZoneForm = useCallback(() => {
+    setPendingCoordinate(null)
+    setZoneDescription('')
+    setZoneReports('0')
+    setZoneType('SAFE')
+    setEditingZoneSlug(null)
+    setZoneModalVisible(false)
+    setSelectedLocationName(null)
+  }, [])
+
   useEffect(() => {
-    if (zones.length > 0) {
-      const mappedZones = zones.map((zone) => ({
+    if (zonesFromBackend.length > 0) {
+      const mappedZones = zonesFromBackend.map((zone: any) => ({
         slug: zone.slug || zone.id || '',
         date: zone.date,
         hour: zone.hour,
         description: zone.description,
         type: zone.type as ZoneType,
         reports: zone.reports ?? 0,
-        coordinates: zone.coordinates,
-        geom: {
-          x: zone.coordinates?.longitude,
-          y: zone.coordinates?.latitude,
+        coordinates: {
+          latitude: zone.latitude,
+          longitude: zone.longitude,
         },
-        createdBy: user?.id,
+        geom: {
+          x: zone.longitude,
+          y: zone.latitude,
+        },
+        createdBy: zone.userId,
         id: zone.id,
       }))
       setZones(mappedZones)
     }
-  }, [zones, user?.id, setZones])
+  }, [zonesFromBackend, setZones])
 
-  // Request location permissions
   useEffect(() => {
     let isMounted = true
 
@@ -111,8 +117,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
         setHasPermission(granted)
 
         if (!granted) {
-          setCheckingPermission(false)
-          setLoadingLocation(false)
+          setIsCheckingPermission(false)
           return
         }
 
@@ -126,14 +131,12 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
           currentLocation.coords.longitude,
           currentLocation.coords.latitude,
         ])
-        setCheckingPermission(false)
-        setLoadingLocation(false)
+        setIsCheckingPermission(false)
       } catch (error) {
         console.warn('Erro a obter localização do utilizador:', error)
         if (isMounted) {
           setHasPermission(false)
-          setCheckingPermission(false)
-          setLoadingLocation(false)
+          setIsCheckingPermission(false)
         }
       }
     }
@@ -143,12 +146,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
     return () => {
       isMounted = false
     }
-  }, [
-    setHasPermission,
-    setUserCoordinate,
-    setCheckingPermission,
-    setLoadingLocation,
-  ])
+  }, [])
 
   const cameraCoordinate = useMemo<Coordinates>(
     () => userCoordinate ?? DEFAULT_COORDINATE,
@@ -159,8 +157,8 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
   const isSatelliteStyle = mapStyle === MapboxGL.StyleURL.SatelliteStreet
 
   const zoneFeatureCollection = useMemo(() => {
-    return mapZoneToFeatureCollection(storeZones)
-  }, [storeZones])
+    return mapZoneToFeatureCollection(zones)
+  }, [zones])
 
   const [isCreateZoneSheetOpen, setCreateZoneSheetOpen] = useState(false)
   const [isCreateAreaVisible, setCreateAreaVisible] = useState(false)
@@ -213,7 +211,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
     const now = new Date()
 
     if (editingZoneSlug) {
-      const currentZones = storeZones
+      const currentZones = zones
       const updatedZones = currentZones.map((zone) => {
         if (zone.slug !== editingZoneSlug) {
           return zone
@@ -269,7 +267,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
 
     const MERGE_THRESHOLD_METERS = 200
 
-    const currentZones = storeZones
+    const currentZones = zones
     const existingIndex = currentZones.findIndex((zone) => {
       const currentCoord: Coordinates = [
         zone.geom?.x ?? zone.coordinates?.longitude,
@@ -301,7 +299,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
     handleCloseZoneModal()
   }
 
-  const handleEditZone = (zone: (typeof storeZones)[0]) => {
+  const handleEditZone = (zone: Zone) => {
     if (zone.createdBy !== user?.id) {
       Alert.alert('Ação não permitida', 'Só podes editar zonas que criaste.')
       return
@@ -359,7 +357,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
     const now = new Date()
     const zoneDate = data.date || now.toISOString().split('T')[0]
     const zoneHour = data.time || now.toTimeString().slice(0, 5)
-
+    console.log('-------------', data)
     const zoneTypeValue: ZoneType =
       createAreaVariant === 'danger' ? 'DANGER' : 'SAFE'
 
@@ -383,7 +381,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
 
     const MERGE_THRESHOLD_METERS = 200
 
-    const currentZones = storeZones
+    const currentZones = zones
     const existingIndex = currentZones.findIndex((zone) => {
       const currentCoord: Coordinates = [
         zone.geom?.x ?? zone.coordinates?.longitude,
@@ -423,7 +421,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
     setSelectedLocationName(data.location || null)
   }
 
-  const requestDeleteZone = (zone: (typeof storeZones)[0]) => {
+  const requestDeleteZone = (zone: Zone) => {
     if (zone.createdBy !== user?.id) {
       Alert.alert('Ação não permitida', 'Só podes eliminar zonas que criaste.')
       return
@@ -438,7 +436,7 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
           text: 'Eliminar',
           style: 'destructive',
           onPress: () => {
-            const filtered = storeZones.filter(
+            const filtered = zones.filter(
               (existingZone) => existingZone.slug !== zone.slug
             )
             setZones(filtered)
@@ -488,30 +486,24 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
   }, [pendingCoordinate, setZonesSheetOpen])
 
   return (
-    <View style={styles.container}>
+    <View className="flex-1 bg-black">
       <MapCanvas
         mapStyle={mapStyle}
         cameraCoordinate={cameraCoordinate}
         zoomLevel={zoomLevel}
         onLongPress={handleMapLongPress}
         zoneShape={zoneFeatureCollection}
-        isZonesVisible={storeZones.length > 0}
+        isZonesVisible={zones.length > 0}
         userCoordinate={userCoordinate}
         cameraRef={cameraRef}
         selectedCoordinate={pendingCoordinate || null}
       />
 
-      <View style={styles.topControls}>
-        <ShowCoordinateBanner
-          coordinates={pendingCoordinate || userCoordinate}
-          locationName={selectedLocationName}
-          buttonTextStyle={styles.controlButtonText}
-        />
-
+      <View className="absolute top-8 right-6 flex-row gap-3">
         <StyleToggleButton
           isSatellite={isSatelliteStyle}
           onToggle={toggleMapStyle}
-          style={styles.controlButton}
+          className="rounded-full bg-black/70 px-4 py-2.5"
         />
       </View>
 
@@ -526,24 +518,29 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
       />
 
       {!pendingCoordinate && !isZonesSheetOpen && (
-        <Pressable
-          onPress={() => setZonesSheetOpen(true)}
-          style={styles.zonesPill}
-        >
-          <View style={styles.zonesPillContent}>
-            <Text style={styles.zonesPillTitle}>Zonas monitorizadas</Text>
-            <Text style={styles.zonesPillSubtitle}>
-              {storeZones.length === 0
-                ? 'Sem zonas registadas'
-                : `${storeZones.length} zona${
-                    storeZones.length === 1 ? '' : 's'
-                  }`}
+        <View className="absolute left-0 right-0 bottom-0 flex-row rounded-t-3xl items-center overflow-hidden bg-white">
+          <View className="flex-1 gap-1 px-5 py-3.5">
+            <Text className="text-sm font-semibold text-black">
+              Todas as Zonas (
+              <Text className="text-xs text-black">
+                {zones.length === 0
+                  ? 'Sem zonas registadas'
+                  : `${zones.length} zona${zones.length === 1 ? '' : 's'}`}
+              </Text>
+              )
+            </Text>
+
+            <Text className="text-[8px] text-gray-400">
+              Clica continuamente no mapa para adicionar uma zona.
             </Text>
           </View>
-          <View style={styles.zonesPillAction}>
-            <Text style={styles.zonesPillActionText}>Ver</Text>
-          </View>
-        </Pressable>
+          <Pressable
+            onPress={() => setZonesSheetOpen(true)}
+            className="items-center justify-center bg-app-primary mr-4 rounded-2xl px-5 py-3.5"
+          >
+            <Text className="text-sm font-semibold text-white">Ver</Text>
+          </Pressable>
+        </View>
       )}
 
       <ZonesSheet
@@ -586,68 +583,3 @@ export default function MapComponent({ zones = [] }: MapComponentProps) {
     </View>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  topControls: {
-    position: 'absolute',
-    top: 32,
-    right: 24,
-    flexDirection: 'row',
-    gap: 12,
-  },
-  controlButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
-  },
-  controlButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  zonesPill: {
-    position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 32,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(17, 24, 39, 0.92)',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    overflow: 'hidden',
-  },
-  zonesPillContent: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    gap: 4,
-  },
-  zonesPillTitle: {
-    color: '#F9FAFB',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  zonesPillSubtitle: {
-    color: '#E5E7EB',
-    fontSize: 12,
-  },
-  zonesPillAction: {
-    paddingHorizontal: 20,
-    paddingVertical: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#2563EB',
-  },
-  zonesPillActionText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-})

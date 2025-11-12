@@ -1,49 +1,36 @@
-import { memo } from 'react'
-import { StyleSheet, TouchableOpacity } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
+import { memo } from "react";
+import { TouchableOpacity } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { cn } from "@/lib/utils";
 
 type CenterOnUserButtonProps = {
-  onPress: () => void
-  isVisible: boolean
-}
+	onPress: () => void;
+	isVisible: boolean;
+	className?: string;
+};
 
 const CenterOnUserButtonComponent = ({
-  onPress,
-  isVisible,
+	onPress,
+	isVisible,
+	className,
 }: CenterOnUserButtonProps) => {
-  if (!isVisible) {
-    return null
-  }
+	if (!isVisible) {
+		return null;
+	}
 
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      style={styles.container}
-      activeOpacity={0.85}
-    >
-      <Ionicons name="locate" size={24} color="#10B981" />
-    </TouchableOpacity>
-  )
-}
+	return (
+		<TouchableOpacity
+			onPress={onPress}
+			className={cn(
+				"absolute bottom-32 right-4 rounded-full bg-slate-800/90 p-3.5",
+				"border border-slate-600/40 shadow-lg shadow-black/40",
+				className
+			)}
+			activeOpacity={0.85}
+		>
+			<Ionicons name="locate" size={24} color="#10B981" />
+		</TouchableOpacity>
+	);
+};
 
-const styles = StyleSheet.create({
-  container: {
-    position: 'absolute',
-    bottom: 120,
-    right: 16,
-    backgroundColor: 'rgba(31, 41, 55, 0.9)',
-    borderRadius: 28,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(75, 85, 99, 0.4)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-})
-
-export const CenterOnUserButton = memo(CenterOnUserButtonComponent)
-
-
+export const CenterOnUserButton = memo(CenterOnUserButtonComponent);

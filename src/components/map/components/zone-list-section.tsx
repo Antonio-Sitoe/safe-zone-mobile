@@ -1,6 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Pressable, Text, View, ActivityIndicator } from 'react-native'
-import type { Coordinates, Zone } from '../store'
+import {
+  Pressable,
+  Text,
+  View,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native'
+import type { Coordinates, Zone } from '../types'
 import {
   Actionsheet,
   ActionsheetBackdrop,
@@ -12,7 +18,8 @@ import {
 
 import { cn } from '@/lib/utils'
 import { useQuery } from '@tanstack/react-query'
-import { getZonesByType } from '@/actions/zone'
+import { getAllZones, getZonesByType } from '@/actions/zone'
+import { RefreshCwIcon } from 'lucide-react-native'
 
 type ZonesSheetProps = {
   isOpen: boolean
@@ -63,16 +70,14 @@ export const ZonesSheet = ({
   currentUserId,
 }: ZonesSheetProps) => {
   const [activeTab, setActiveTab] = useState<FilterKey>('all')
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['zones', activeTab],
     queryFn: async () => {
       if (activeTab === 'safe') return await getZonesByType('SAFE')
       if (activeTab === 'danger') return await getZonesByType('DANGER')
-      // return getAllZones()
-      return getZonesByType('SAFE')
+      return getAllZones()
     },
   })
-  // console.log({ data, isLoading, error })
   const dataSource = useMemo(() => (data?.data as Zone[]) ?? [], [data])
   const total = useMemo(() => dataSource.length || 0, [dataSource])
 
@@ -88,9 +93,15 @@ export const ZonesSheet = ({
         </ActionsheetDragIndicatorWrapper>
 
         <View className="w-full px-6 py-3 gap-1">
-          <Text className="text-lg font-bold text-gray-900">
-            Zonas monitorizadas
-          </Text>
+          <View className="flex-row items-center justify-between">
+            <Text className="text-lg font-bold text-gray-900">
+              Zonas monitorizadas
+            </Text>
+            <TouchableOpacity onPress={() => refetch()} className="p-2">
+              <RefreshCwIcon className="h-4 w-4 text-gray-500" />
+            </TouchableOpacity>
+          </View>
+
           <Text className="text-xs text-gray-500">
             {total} Zonas registadas
           </Text>
@@ -196,7 +207,10 @@ export const ZonesSheet = ({
 
                       <View className="flex-row flex-wrap items-center justify-between gap-2">
                         <Pressable
-                          onPress={() => onLocate(zoneCoordinate)}
+                          onPress={() => {
+                            onClose()
+                            onLocate(zoneCoordinate)
+                          }}
                           className="rounded-xl bg-blue-600 px-4 py-2.5"
                         >
                           <Text className="text-xs font-semibold text-white">

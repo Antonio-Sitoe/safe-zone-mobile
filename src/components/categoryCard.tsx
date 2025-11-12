@@ -7,7 +7,13 @@ interface EnhancedCategoryCardProps extends CategoryCardProps {
 	onDelete?: () => void;
 }
 
-export const CategoryCard = ({ name, count, onPress, onEdit, onDelete }: EnhancedCategoryCardProps) => {
+export const CategoryCard = ({
+	name,
+	count,
+	onPress,
+	onEdit,
+	onDelete,
+}: EnhancedCategoryCardProps) => {
 	return (
 		<View className="flex-row gap-2 items-center">
 			<Pressable

@@ -1,44 +1,25 @@
-import { memo } from 'react'
-import {
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native'
+import { memo } from "react";
+import { Text, TouchableOpacity } from "react-native";
+import { cn } from "@/lib/utils";
 
 type StyleToggleButtonProps = {
-  isSatellite: boolean
-  onToggle: () => void
-  style?: StyleProp<ViewStyle>
-}
+	isSatellite: boolean;
+	onToggle: () => void;
+	className?: string;
+};
 
 const StyleToggleButtonComponent = ({
-  isSatellite,
-  onToggle,
-  style,
+	isSatellite,
+	onToggle,
+	className,
 }: StyleToggleButtonProps) => (
-  <TouchableOpacity
-    activeOpacity={0.85}
-    style={[styles.container, style]}
-    onPress={onToggle}
-  >
-    <Text style={styles.text}>{isSatellite ? 'Mapa' : 'Satélite'}</Text>
-  </TouchableOpacity>
-)
+	<TouchableOpacity
+		activeOpacity={0.85}
+		className={cn("rounded-full bg-black/70 px-4 py-2.5", className)}
+		onPress={onToggle}
+	>
+		<Text className="text-sm font-semibold text-white">{isSatellite ? "Mapa" : "Satélite"}</Text>
+	</TouchableOpacity>
+);
 
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
-  },
-  text: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-})
-
-export const StyleToggleButton = memo(StyleToggleButtonComponent)
+export const StyleToggleButton = memo(StyleToggleButtonComponent);

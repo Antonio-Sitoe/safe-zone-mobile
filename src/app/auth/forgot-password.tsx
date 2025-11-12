@@ -40,7 +40,7 @@ const ForgotPassword = () => {
 		},
 	});
 
-		const onSubmit = async (_data: ForgotPasswordFormData) => {
+	const onSubmit = async (_data: ForgotPasswordFormData) => {
 		try {
 			if (authClient) {
 				const { data, error } = await authClient.requestPasswordReset({

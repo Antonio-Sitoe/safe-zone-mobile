@@ -1,64 +1,50 @@
-import { memo } from 'react'
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native'
+import { memo } from "react";
+import { ActivityIndicator, Text, View } from "react-native";
+import { cn } from "@/lib/utils";
 
 type PermissionOverlayProps = {
-  isChecking: boolean
-  hasPermission: boolean | null
-}
+	isChecking: boolean;
+	hasPermission: boolean | null;
+	className?: string;
+};
 
 const PermissionOverlayComponent = ({
-  isChecking,
-  hasPermission,
+	isChecking,
+	hasPermission,
+	className,
 }: PermissionOverlayProps) => {
-  if (isChecking) {
-    return (
-      <View style={styles.overlay}>
-        <ActivityIndicator size="large" color="#5CA439" />
-        <Text style={styles.text}>A obter localização…</Text>
-      </View>
-    )
-  }
+	if (isChecking) {
+		return (
+			<View
+				className={cn(
+					"absolute bottom-8 left-6 right-6 items-center gap-2 rounded-xl bg-black/70 px-4 py-4",
+					className
+				)}
+			>
+				<ActivityIndicator size="large" color="#5CA439" />
+				<Text className="text-sm text-white text-center">A obter localização…</Text>
+			</View>
+		);
+	}
 
-  if (hasPermission === false) {
-    return (
-      <View style={styles.overlay}>
-        <Text style={styles.title}>Permissão negada</Text>
-        <Text style={styles.text}>
-          Autoriza o acesso à localização nas definições do dispositivo para
-          visualizar o mapa centrado na tua posição.
-        </Text>
-      </View>
-    )
-  }
+	if (hasPermission === false) {
+		return (
+			<View
+				className={cn(
+					"absolute bottom-8 left-6 right-6 items-center gap-2 rounded-xl bg-black/70 px-4 py-4",
+					className
+				)}
+			>
+				<Text className="text-lg font-semibold text-white text-center">Permissão negada</Text>
+				<Text className="text-sm text-white text-center">
+					Autoriza o acesso à localização nas definições do dispositivo para visualizar o mapa
+					centrado na tua posição.
+				</Text>
+			</View>
+		);
+	}
 
-  return null
-}
+	return null;
+};
 
-const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    bottom: 32,
-    left: 24,
-    right: 24,
-    padding: 16,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.72)',
-    alignItems: 'center',
-    gap: 8,
-  },
-  title: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  text: {
-    color: '#fff',
-    fontSize: 14,
-    textAlign: 'center',
-  },
-})
-
-export const PermissionOverlay = memo(PermissionOverlayComponent)
-
-
+export const PermissionOverlay = memo(PermissionOverlayComponent);
