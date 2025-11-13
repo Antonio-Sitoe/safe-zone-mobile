@@ -15,6 +15,24 @@ import DateTimePicker from '@react-native-community/datetimepicker'
 import * as DocumentPicker from 'expo-document-picker'
 import type { CreateModalProps, SafeZoneData } from '@/@types/area'
 
+// Helper para formatar data no formato ISO (YYYY-MM-DD)
+const formatDateToISO = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+// Helper para exibir data no formato amigável (DD/MM/YYYY)
+const formatDateForDisplay = (isoDate: string): string => {
+  try {
+    const [year, month, day] = isoDate.split('-')
+    return `${day}/${month}/${year}`
+  } catch {
+    return isoDate
+  }
+}
+
 export function CreateArea({
   visible,
   onClose,
@@ -24,8 +42,9 @@ export function CreateArea({
 }: CreateModalProps) {
   const today = new Date()
   const [formData, setFormData] = useState<SafeZoneData>({
+    slug: '',
     location: location?.name || '',
-    date: today.toLocaleDateString(),
+    date: formatDateToISO(today),
     time: today.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     description: '',
     characteristics: {
@@ -166,7 +185,9 @@ export function CreateArea({
                 activeOpacity={0.7}
               >
                 <Calendar size={20} color="#64748b" strokeWidth={1.5} />
-                <Text className=" text-base ml-3">{formData.date}</Text>
+                <Text className=" text-base ml-3">
+                  {formatDateForDisplay(formData.date)}
+                </Text>
               </TouchableOpacity>
               {showDatePicker && (
                 <DateTimePicker
@@ -178,7 +199,7 @@ export function CreateArea({
                     if (selectedDate) {
                       setFormData((prev) => ({
                         ...prev,
-                        date: selectedDate.toLocaleDateString(),
+                        date: formatDateToISO(selectedDate),
                       }))
                     }
                   }}
@@ -318,7 +339,7 @@ export function CreateArea({
           </ScrollView>
         </ScrollView>
 
-        <View className="flex-row px-4 pb-6 pt-4  space-x-4 border-t border-gray-200">
+        <View className="flex-row px-4 pb-10 mb-10 pt-4 space-x-4 border-t border-gray-200">
           <TouchableOpacity
             onPress={handleSave}
             className="flex-1 bg-app-primary mx-2 py-4 rounded-lg items-center"

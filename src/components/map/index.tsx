@@ -4,7 +4,6 @@ import { Platform, View, Alert, Pressable, Text } from 'react-native'
 import {
   DEFAULT_COORDINATE,
   parseReports,
-  distanceInMeters,
   mapZoneToFeatureCollection,
 } from './utils'
 
@@ -24,16 +23,26 @@ import type { SafeZoneData } from '@/@types/area'
 import { getAllZones } from '@/actions/zone'
 import { useQuery } from '@tanstack/react-query'
 import { Coordinates, Zone, ZoneType } from './types'
+import {
+  useCreateZoneMutation,
+  useUpdateZoneMutation,
+  useDeleteZoneMutation,
+} from '@/react-query/zone/zoneMutations'
+import type { CreateZoneSchema } from '@/@types/Zone'
 
 MapboxGL.setAccessToken(env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN)
 
 export default function MapComponent() {
   const { user } = useAuthStore()
 
-  const { data: zonesData } = useQuery({
+  const { data: zonesData, refetch: refetchZones } = useQuery({
     queryKey: ['zones', 'all'],
     queryFn: async () => await getAllZones(),
   })
+
+  const createZoneMutation = useCreateZoneMutation()
+  const updateZoneMutation = useUpdateZoneMutation()
+  const deleteZoneMutation = useDeleteZoneMutation()
 
   const zonesFromBackend = useMemo(() => {
     return zonesData?.data || []
@@ -59,6 +68,12 @@ export default function MapComponent() {
     string | null
   >(null)
   const [isZonesSheetOpen, setZonesSheetOpen] = useState(false)
+  const [isCreateZoneSheetOpen, setCreateZoneSheetOpen] = useState(false)
+  const [isCreateAreaVisible, setCreateAreaVisible] = useState(false)
+  const [createAreaVariant, setCreateAreaVariant] = useState<'safe' | 'danger'>(
+    'safe'
+  )
+
   const toggleMapStyle = useCallback(() => {
     setMapStyle((current) =>
       current === MapboxGL.StyleURL.SatelliteStreet
@@ -160,12 +175,6 @@ export default function MapComponent() {
     return mapZoneToFeatureCollection(zones)
   }, [zones])
 
-  const [isCreateZoneSheetOpen, setCreateZoneSheetOpen] = useState(false)
-  const [isCreateAreaVisible, setCreateAreaVisible] = useState(false)
-  const [createAreaVariant, setCreateAreaVariant] = useState<'safe' | 'danger'>(
-    'safe'
-  )
-
   const handleMapLongPress = (event: {
     geometry: { coordinates: Coordinates }
   }) => {
@@ -187,7 +196,7 @@ export default function MapComponent() {
     resetZoneForm()
   }
 
-  const handleSaveZone = () => {
+  const handleSaveZone = async () => {
     if (!pendingCoordinate) {
       Alert.alert(
         'Coordenadas não definidas',
@@ -211,43 +220,95 @@ export default function MapComponent() {
     const now = new Date()
 
     if (editingZoneSlug) {
-      const currentZones = zones
-      const updatedZones = currentZones.map((zone) => {
-        if (zone.slug !== editingZoneSlug) {
-          return zone
-        }
+      const zoneToEdit = zones.find((z) => z.slug === editingZoneSlug)
 
-        if (zone.createdBy !== user?.id) {
-          Alert.alert(
-            'Ação não permitida',
-            'Só é possível editar zonas que criaste.'
-          )
-          return zone
-        }
+      if (!zoneToEdit) {
+        Alert.alert('Erro', 'Zona não encontrada.')
+        return
+      }
 
-        return {
-          ...zone,
-          description: zoneDescription.trim(),
-          reports: reportsValue,
-          type: baseType,
-          date: now.toISOString().split('T')[0],
-          hour: now.toTimeString().slice(0, 5),
-          coordinates: {
-            latitude: pendingCoordinate[1],
-            longitude: pendingCoordinate[0],
-          },
-          geom: {
-            x: pendingCoordinate[0],
-            y: pendingCoordinate[1],
-          },
-        }
-      })
+      if (!zoneToEdit.id) {
+        Alert.alert('Erro', 'Zona não possui ID válido.')
+        return
+      }
+
+      if (zoneToEdit.createdBy !== user?.id) {
+        Alert.alert(
+          'Ação não permitida',
+          'Só é possível editar zonas que criaste.'
+        )
+        return
+      }
+
+      const backendType: 'SAFE' | 'DANGER' =
+        baseType === 'CRITICAL'
+          ? 'DANGER'
+          : baseType === 'DANGER'
+          ? 'DANGER'
+          : 'SAFE'
+
+      const updatedZones = zones.map((zone) =>
+        zone.id === zoneToEdit.id
+          ? {
+              ...zone,
+              description: zoneDescription.trim(),
+              type: baseType,
+              date: now.toISOString().split('T')[0],
+              hour: now.toTimeString().slice(0, 5),
+              coordinates: {
+                latitude: pendingCoordinate[1],
+                longitude: pendingCoordinate[0],
+              },
+              geom: {
+                x: pendingCoordinate[0],
+                y: pendingCoordinate[1],
+              },
+            }
+          : zone
+      )
       setZones(updatedZones)
       handleCloseZoneModal()
+
+      const updatePayload: Partial<CreateZoneSchema> = {
+        description: zoneDescription.trim(),
+        type: backendType,
+        date: now.toISOString().split('T')[0],
+        hour: now.toTimeString().slice(0, 5),
+        coordinates: {
+          latitude: pendingCoordinate[1],
+          longitude: pendingCoordinate[0],
+        },
+        geom: {
+          x: pendingCoordinate[0],
+          y: pendingCoordinate[1],
+        },
+      }
+
+      updateZoneMutation
+        .mutateAsync({
+          id: zoneToEdit.id,
+          data: updatePayload,
+        })
+        .then(() => {
+          refetchZones()
+        })
+        .catch((error) => {
+          console.error('❌ Erro ao atualizar zona no backend:', error)
+          setZones(zones)
+        })
       return
     }
 
-    const newZone = {
+    const backendType: 'SAFE' | 'DANGER' =
+      baseType === 'CRITICAL'
+        ? 'DANGER'
+        : baseType === 'DANGER'
+        ? 'DANGER'
+        : 'SAFE'
+
+    const tempId = `temp-${now.getTime()}`
+    const optimisticZone: Zone = {
+      id: tempId,
       slug: `zona-${now.getTime()}`,
       date: now.toISOString().split('T')[0],
       hour: now.toTimeString().slice(0, 5),
@@ -265,38 +326,42 @@ export default function MapComponent() {
       createdBy: user?.id || 'unknown',
     }
 
-    const MERGE_THRESHOLD_METERS = 200
+    setZones([...zones, optimisticZone])
+    handleCloseZoneModal()
 
-    const currentZones = zones
-    const existingIndex = currentZones.findIndex((zone) => {
-      const currentCoord: Coordinates = [
-        zone.geom?.x ?? zone.coordinates?.longitude,
-        zone.geom?.y ?? zone.coordinates?.latitude,
-      ]
-      return (
-        distanceInMeters(currentCoord, pendingCoordinate) <
-        MERGE_THRESHOLD_METERS
-      )
-    })
-
-    if (existingIndex >= 0) {
-      const existing = currentZones[existingIndex]
-      const mergedReports = (existing.reports ?? 0) + newZone.reports
-      const mergedZone = {
-        ...existing,
-        description: `${existing.description || ''}\n• ${newZone.description}`,
-        reports: mergedReports,
-        type: mergedReports >= 10 ? 'CRITICAL' : existing.type,
-      }
-
-      const updated = [...currentZones]
-      updated[existingIndex] = mergedZone
-      setZones(updated)
-    } else {
-      setZones([...currentZones, newZone])
+    const zonePayload: CreateZoneSchema = {
+      slug: optimisticZone.slug,
+      date: optimisticZone.date!,
+      hour: optimisticZone.hour!,
+      description: optimisticZone.description!,
+      type: backendType,
+      coordinates: {
+        latitude: pendingCoordinate[1],
+        longitude: pendingCoordinate[0],
+      },
+      geom: {
+        x: pendingCoordinate[0],
+        y: pendingCoordinate[1],
+      },
+      featureDetails: {
+        goodLighting: false,
+        policePresence: false,
+        publicTransport: false,
+        insufficientLighting: backendType === 'DANGER',
+        lackOfPolicing: backendType === 'DANGER',
+        abandonedHouses: false,
+      },
     }
 
-    handleCloseZoneModal()
+    createZoneMutation
+      .mutateAsync(zonePayload)
+      .then(() => {
+        refetchZones()
+      })
+      .catch((error: any) => {
+        console.error('❌ Erro ao criar zona no backend:', error)
+        setZones((prev) => prev.filter((z) => z.id !== tempId))
+      })
   }
 
   const handleEditZone = (zone: Zone) => {
@@ -357,16 +422,18 @@ export default function MapComponent() {
     const now = new Date()
     const zoneDate = data.date || now.toISOString().split('T')[0]
     const zoneHour = data.time || now.toTimeString().slice(0, 5)
-    console.log('-------------', data)
-    const zoneTypeValue: ZoneType =
+    const zoneTypeValue: 'SAFE' | 'DANGER' =
       createAreaVariant === 'danger' ? 'DANGER' : 'SAFE'
+    const zoneTypeLocal: ZoneType = zoneTypeValue
 
-    const newZone = {
-      slug: `zona-${now.getTime()}`,
+    const tempId = `temp-${now.getTime()}`
+    const optimisticZone: Zone = {
+      id: tempId,
+      slug: data.slug || `zona-${now.getTime()}`,
       date: zoneDate,
       hour: zoneHour,
       description: data.description.trim(),
-      type: zoneTypeValue,
+      type: zoneTypeLocal,
       reports: zoneTypeValue === 'DANGER' ? 1 : 0,
       coordinates: {
         latitude,
@@ -379,39 +446,7 @@ export default function MapComponent() {
       createdBy: user?.id || 'unknown',
     }
 
-    const MERGE_THRESHOLD_METERS = 200
-
-    const currentZones = zones
-    const existingIndex = currentZones.findIndex((zone) => {
-      const currentCoord: Coordinates = [
-        zone.geom?.x ?? zone.coordinates?.longitude,
-        zone.geom?.y ?? zone.coordinates?.latitude,
-      ]
-      return (
-        distanceInMeters(currentCoord, pendingCoordinate) <
-        MERGE_THRESHOLD_METERS
-      )
-    })
-
-    if (existingIndex >= 0) {
-      const existing = currentZones[existingIndex]
-      const mergedReports = (existing.reports ?? 0) + (newZone.reports ?? 0)
-      const mergedZone = {
-        ...existing,
-        description: `${existing.description || ''}\n• ${newZone.description}`,
-        reports: mergedReports,
-        type: mergedReports >= 10 ? 'CRITICAL' : existing.type,
-        date: zoneDate,
-        hour: zoneHour,
-      }
-
-      const updated = [...currentZones]
-      updated[existingIndex] = mergedZone
-      setZones(updated)
-    } else {
-      setZones([...currentZones, newZone])
-    }
-
+    setZones([...zones, optimisticZone])
     setCreateAreaVisible(false)
     setPendingCoordinate(null)
     setZoneDescription('')
@@ -419,11 +454,50 @@ export default function MapComponent() {
     setZoneType('SAFE')
     setEditingZoneSlug(null)
     setSelectedLocationName(data.location || null)
+
+    const zonePayload: CreateZoneSchema = {
+      slug: optimisticZone.slug,
+      date: zoneDate,
+      hour: zoneHour,
+      description: data.description.trim(),
+      type: zoneTypeValue,
+      coordinates: {
+        latitude,
+        longitude,
+      },
+      geom: {
+        x: longitude,
+        y: latitude,
+      },
+      featureDetails: {
+        goodLighting: data.characteristics?.goodLighting || false,
+        policePresence: data.characteristics?.policePresence || false,
+        publicTransport: data.characteristics?.publicTransport || false,
+        insufficientLighting: !data.characteristics?.goodLighting || false,
+        lackOfPolicing: !data.characteristics?.policePresence || false,
+        abandonedHouses: false,
+      },
+    }
+
+    createZoneMutation
+      .mutateAsync(zonePayload)
+      .then(() => {
+        refetchZones()
+      })
+      .catch((error: any) => {
+        console.error('❌ Erro ao criar zona no backend:', error)
+        setZones((prev) => prev.filter((z) => z.id !== tempId))
+      })
   }
 
   const requestDeleteZone = (zone: Zone) => {
     if (zone.createdBy !== user?.id) {
       Alert.alert('Ação não permitida', 'Só podes eliminar zonas que criaste.')
+      return
+    }
+
+    if (!zone.id) {
+      Alert.alert('Erro', 'Zona não possui ID válido.')
       return
     }
 
@@ -436,10 +510,22 @@ export default function MapComponent() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: () => {
-            const filtered = zones.filter(
-              (existingZone) => existingZone.slug !== zone.slug
-            )
-            setZones(filtered)
+            // Optimistic update - remove do mapa primeiro
+            const filteredZones = zones.filter((z) => z.id !== zone.id)
+            setZones(filteredZones)
+
+            // Faz DELETE em background
+            deleteZoneMutation
+              .mutateAsync(zone.id!)
+              .then(() => {
+                // Após sucesso, faz refetch
+                refetchZones()
+              })
+              .catch((error) => {
+                console.error('❌ Erro ao eliminar zona no backend:', error)
+                // Em caso de erro, adiciona a zona de volta
+                setZones(zones)
+              })
           },
         },
       ]
@@ -489,13 +575,13 @@ export default function MapComponent() {
     <View className="flex-1 bg-black">
       <MapCanvas
         mapStyle={mapStyle}
-        cameraCoordinate={cameraCoordinate}
         zoomLevel={zoomLevel}
+        cameraRef={cameraRef}
+        userCoordinate={userCoordinate}
         onLongPress={handleMapLongPress}
         zoneShape={zoneFeatureCollection}
         isZonesVisible={zones.length > 0}
-        userCoordinate={userCoordinate}
-        cameraRef={cameraRef}
+        cameraCoordinate={cameraCoordinate}
         selectedCoordinate={pendingCoordinate || null}
       />
 

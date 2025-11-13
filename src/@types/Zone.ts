@@ -32,7 +32,11 @@ export interface CreateZoneSchema {
 		latitude: number;
 		longitude: number;
 	};
-	featureDetails?: {
+	geom: {
+		x: number;
+		y: number;
+	};
+	featureDetails: {
 		goodLighting?: boolean;
 		policePresence?: boolean;
 		publicTransport?: boolean;
