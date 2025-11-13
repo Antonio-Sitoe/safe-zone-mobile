@@ -605,7 +605,7 @@ export default function MapComponent() {
 
       {!pendingCoordinate && !isZonesSheetOpen && (
         <View className="absolute left-0 right-0 bottom-0 flex-row rounded-t-3xl items-center overflow-hidden bg-white">
-          <View className="flex-1 gap-1 px-5 py-3.5">
+          <View className="flex-1 gap-1 px-5 py-3.5 pb-10">
             <Text className="text-sm font-semibold text-black">
               Todas as Zonas (
               <Text className="text-xs text-black">
