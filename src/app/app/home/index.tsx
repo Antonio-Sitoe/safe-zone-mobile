@@ -1,5 +1,5 @@
-import MapComponent from '@/components/map'
+import MapComponent from "@/components/map";
 
 export default function MapScreen() {
-  return <MapComponent />
+	return <MapComponent />;
 }

@@ -18,7 +18,6 @@ import { CreateZoneSheet } from './components/CreateZoneSheet'
 import { PermissionOverlay } from './components/PermissionOverlay'
 import { StyleToggleButton } from './components/StyleToggleButton'
 import { CenterOnUserButton } from './components/CenterOnUserButton'
-import { CreateArea } from '@/components/modal/area-form'
 import type { SafeZoneData } from '@/@types/area'
 import { getAllZones } from '@/actions/zone'
 import { useQuery } from '@tanstack/react-query'
@@ -29,6 +28,8 @@ import {
   useDeleteZoneMutation,
 } from '@/react-query/zone/zoneMutations'
 import type { CreateZoneSchema } from '@/@types/Zone'
+import { CreateAndEditArea } from '../modal/create-and-edit-area'
+import slugify from 'slugify'
 
 MapboxGL.setAccessToken(env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN)
 
@@ -47,6 +48,8 @@ export default function MapComponent() {
   const zonesFromBackend = useMemo(() => {
     return zonesData?.data || []
   }, [zonesData?.data])
+
+  console.log(zonesFromBackend)
 
   const cameraRef = useRef<MapboxGL.Camera | null>(null)
 
@@ -307,9 +310,16 @@ export default function MapComponent() {
         : 'SAFE'
 
     const tempId = `temp-${now.getTime()}`
+    const slug =
+      slugify(zoneDescription || 'zona', {
+        lower: true,
+        strict: true,
+        trim: true,
+        locale: 'pt',
+      }) || `zona-${now.getTime()}`
     const optimisticZone: Zone = {
       id: tempId,
-      slug: `zona-${now.getTime()}`,
+      slug,
       date: now.toISOString().split('T')[0],
       hour: now.toTimeString().slice(0, 5),
       description: zoneDescription.trim(),
@@ -330,7 +340,7 @@ export default function MapComponent() {
     handleCloseZoneModal()
 
     const zonePayload: CreateZoneSchema = {
-      slug: optimisticZone.slug,
+      slug,
       date: optimisticZone.date!,
       hour: optimisticZone.hour!,
       description: optimisticZone.description!,
@@ -510,20 +520,16 @@ export default function MapComponent() {
           text: 'Eliminar',
           style: 'destructive',
           onPress: () => {
-            // Optimistic update - remove do mapa primeiro
             const filteredZones = zones.filter((z) => z.id !== zone.id)
             setZones(filteredZones)
 
-            // Faz DELETE em background
             deleteZoneMutation
               .mutateAsync(zone.id!)
               .then(() => {
-                // Após sucesso, faz refetch
                 refetchZones()
               })
               .catch((error) => {
                 console.error('❌ Erro ao eliminar zona no backend:', error)
-                // Em caso de erro, adiciona a zona de volta
                 setZones(zones)
               })
           },
@@ -659,11 +665,11 @@ export default function MapComponent() {
         onSave={handleSaveZone}
       />
 
-      <CreateArea
+      <CreateAndEditArea
+        variant={createAreaVariant}
         visible={isCreateAreaVisible}
         onClose={handleCloseCreateArea}
         onSave={handleSaveCreateArea}
-        variant={createAreaVariant}
         location={createAreaLocation}
       />
     </View>

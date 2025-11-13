@@ -1,3 +1,3 @@
 export default function SOSPlaceholder() {
-  return null
+	return null;
 }
