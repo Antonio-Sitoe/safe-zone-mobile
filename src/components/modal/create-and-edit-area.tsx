@@ -106,7 +106,6 @@ export const CreateAndEditArea = ({
         policePresence: data.characteristics.policePresence ?? false,
         publicTransport: data.characteristics.publicTransport ?? false,
       },
-      media: [],
     }
 
     onSave(formattedData)

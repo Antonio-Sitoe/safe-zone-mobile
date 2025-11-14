@@ -33,7 +33,6 @@ export default {
 		plugins: [
 			"expo-router",
 			"expo-web-browser",
-			"@maplibre/maplibre-react-native",
 			[
 				"@rnmapbox/maps",
 				{

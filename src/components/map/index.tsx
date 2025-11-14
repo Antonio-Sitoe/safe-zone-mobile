@@ -669,8 +669,8 @@ export default function MapComponent() {
         variant={createAreaVariant}
         visible={isCreateAreaVisible}
         onClose={handleCloseCreateArea}
+        location={createAreaLocation || { name: '' }}
         onSave={handleSaveCreateArea}
-        location={createAreaLocation}
       />
     </View>
   )
