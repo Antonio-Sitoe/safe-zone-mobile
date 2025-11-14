@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Platform, View, Alert, Pressable, Text } from 'react-native'
+import { Platform, View, Alert } from 'react-native'
 
 import {
   DEFAULT_COORDINATE,
@@ -21,7 +21,7 @@ import { CenterOnUserButton } from './components/CenterOnUserButton'
 import type { SafeZoneData } from '@/@types/area'
 import { getAllZones } from '@/actions/zone'
 import { useQuery } from '@tanstack/react-query'
-import { Coordinates, Zone, ZoneType } from './types'
+import type { Coordinates, Zone, ZoneType } from './types'
 import {
   useCreateZoneMutation,
   useUpdateZoneMutation,
@@ -30,6 +30,7 @@ import {
 import type { CreateZoneSchema } from '@/@types/Zone'
 import { CreateAndEditArea } from '../modal/create-and-edit-area'
 import slugify from 'slugify'
+import { MapTabBarContainer } from './components/map-tab-bar-container'
 
 MapboxGL.setAccessToken(env.EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN)
 
@@ -52,6 +53,7 @@ export default function MapComponent() {
   console.log(zonesFromBackend)
 
   const cameraRef = useRef<MapboxGL.Camera | null>(null)
+  const mapViewRef = useRef<MapboxGL.MapView | null>(null)
 
   const [isCheckingPermission, setIsCheckingPermission] = useState(true)
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
@@ -76,6 +78,12 @@ export default function MapComponent() {
   const [createAreaVariant, setCreateAreaVariant] = useState<'safe' | 'danger'>(
     'safe'
   )
+  const [isSelectionMode, setIsSelectionMode] = useState(false)
+  const [ghostMarkerCoordinate, setGhostMarkerCoordinate] =
+    useState<Coordinates | null>(null)
+  const [ghostMarkerType, setGhostMarkerType] = useState<
+    'safe' | 'danger' | null
+  >(null)
 
   const toggleMapStyle = useCallback(() => {
     setMapStyle((current) =>
@@ -93,6 +101,9 @@ export default function MapComponent() {
     setEditingZoneSlug(null)
     setZoneModalVisible(false)
     setSelectedLocationName(null)
+    setIsSelectionMode(false)
+    setGhostMarkerCoordinate(null)
+    setGhostMarkerType(null)
   }, [])
 
   useEffect(() => {
@@ -417,7 +428,39 @@ export default function MapComponent() {
     setZoneReports('0')
     setZoneType('SAFE')
     setEditingZoneSlug(null)
+    setIsSelectionMode(false)
+    setGhostMarkerCoordinate(null)
+    setGhostMarkerType(null)
   }
+
+  const handleCreateSafeZone = useCallback(() => {
+    setZonesSheetOpen(false)
+    setIsSelectionMode(true)
+    setGhostMarkerType('safe')
+    setCreateAreaVariant('safe')
+    setZoneType('SAFE')
+    setGhostMarkerCoordinate(cameraCoordinate)
+  }, [cameraCoordinate])
+
+  const handleCreateDangerZone = useCallback(() => {
+    setZonesSheetOpen(false)
+    setIsSelectionMode(true)
+    setGhostMarkerType('danger')
+    setCreateAreaVariant('danger')
+    setZoneType('DANGER')
+    setGhostMarkerCoordinate(cameraCoordinate)
+  }, [cameraCoordinate])
+
+  const handleGhostMarkerConfirm = useCallback(
+    (coordinate: Coordinates) => {
+      setPendingCoordinate(coordinate)
+      setGhostMarkerCoordinate(null)
+      setIsSelectionMode(false)
+      setCreateAreaVisible(true)
+      setSelectedLocationName(null)
+    },
+    []
+  )
 
   const handleSaveCreateArea = (data: SafeZoneData) => {
     if (!pendingCoordinate) {
@@ -577,9 +620,19 @@ export default function MapComponent() {
     }
   }, [pendingCoordinate, setZonesSheetOpen])
 
+  useEffect(() => {
+    if (!isSelectionMode) {
+      setGhostMarkerCoordinate(null)
+      setGhostMarkerType(null)
+    } else if (isSelectionMode && !ghostMarkerCoordinate) {
+      setGhostMarkerCoordinate(cameraCoordinate)
+    }
+  }, [isSelectionMode, cameraCoordinate, ghostMarkerCoordinate])
+
   return (
     <View className="flex-1 bg-black">
       <MapCanvas
+        ref={mapViewRef}
         mapStyle={mapStyle}
         zoomLevel={zoomLevel}
         cameraRef={cameraRef}
@@ -589,6 +642,9 @@ export default function MapComponent() {
         isZonesVisible={zones.length > 0}
         cameraCoordinate={cameraCoordinate}
         selectedCoordinate={pendingCoordinate || null}
+        ghostMarkerType={ghostMarkerType}
+        isSelectionMode={isSelectionMode}
+        onGhostMarkerConfirm={handleGhostMarkerConfirm}
       />
 
       <View className="absolute top-8 right-6 flex-row gap-3">
@@ -608,31 +664,13 @@ export default function MapComponent() {
         onPress={handleCenterOnUser}
         isVisible={!!userCoordinate}
       />
-
-      {!pendingCoordinate && !isZonesSheetOpen && (
-        <View className="absolute left-0 right-0 bottom-0 flex-row rounded-t-3xl items-center overflow-hidden bg-white">
-          <View className="flex-1 gap-1 px-5 py-3.5 pb-10">
-            <Text className="text-sm font-semibold text-black">
-              Todas as Zonas (
-              <Text className="text-xs text-black">
-                {zones.length === 0
-                  ? 'Sem zonas registadas'
-                  : `${zones.length} zona${zones.length === 1 ? '' : 's'}`}
-              </Text>
-              )
-            </Text>
-
-            <Text className="text-[8px] text-gray-400">
-              Clica continuamente no mapa para adicionar uma zona.
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => setZonesSheetOpen(true)}
-            className="items-center justify-center bg-app-primary mr-4 rounded-2xl px-5 py-3.5"
-          >
-            <Text className="text-sm font-semibold text-white">Ver</Text>
-          </Pressable>
-        </View>
+      {!pendingCoordinate && !isZonesSheetOpen && !isSelectionMode && (
+        <MapTabBarContainer
+          totalZones={zones.length}
+          handleShowList={() => setZonesSheetOpen(true)}
+          onCreateSafeZone={handleCreateSafeZone}
+          onCreateDangerZone={handleCreateDangerZone}
+        />
       )}
 
       <ZonesSheet
@@ -670,6 +708,7 @@ export default function MapComponent() {
         visible={isCreateAreaVisible}
         onClose={handleCloseCreateArea}
         location={createAreaLocation || { name: '' }}
+        // @ts-ignore
         onSave={handleSaveCreateArea}
       />
     </View>

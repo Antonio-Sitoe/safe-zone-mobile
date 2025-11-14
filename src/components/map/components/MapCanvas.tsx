@@ -1,10 +1,11 @@
 import MapboxGL from "@rnmapbox/maps";
-import { memo } from "react";
+import { memo, forwardRef } from "react";
 import type { RefObject } from "react";
-import { StyleSheet } from "react-native";
+import { StyleSheet, View } from "react-native";
 import type { FeatureCollection } from "geojson";
 import type { Coordinates } from "../types";
 import MarkerSvg from "../marker.svg";
+import { SelectionOverlay } from "./SelectionOverlay";
 
 type MapCanvasProps = {
 	mapStyle: string;
@@ -17,82 +18,112 @@ type MapCanvasProps = {
 	userCoordinate: Coordinates | null;
 	cameraRef: RefObject<any>;
 	selectedCoordinate: Coordinates | null;
+	ghostMarkerType: "safe" | "danger" | null;
+	isSelectionMode: boolean;
+	onGhostMarkerConfirm: (coordinate: Coordinates) => void;
 };
 
-const MapCanvasComponent = ({
-	mapStyle,
-	cameraCoordinate,
-	zoomLevel,
-	onPress,
-	onLongPress,
-	zoneShape,
-	isZonesVisible,
-	userCoordinate,
-	cameraRef,
-	selectedCoordinate,
-}: MapCanvasProps) => (
-	<MapboxGL.MapView
-		style={styles.map}
-		styleURL={mapStyle}
-		attributionEnabled={false}
-		logoEnabled={false}
-		onPress={(feature) => {
-			if (feature.geometry.type === "Point" && onPress) {
-				onPress({
-					geometry: {
-						coordinates: feature.geometry.coordinates as Coordinates,
-					},
-				});
-			}
-		}}
-		onLongPress={(feature) => {
-			if (feature.geometry.type === "Point") {
-				onLongPress({
-					geometry: {
-						coordinates: feature.geometry.coordinates as Coordinates,
-					},
-				});
-			}
-		}}
-	>
-		<MapboxGL.Camera
-			ref={cameraRef}
-			centerCoordinate={cameraCoordinate}
-			animationMode="flyTo"
-			animationDuration={1200}
-			zoomLevel={zoomLevel}
-		/>
-
-		<MapboxGL.UserLocation visible androidRenderMode="gps" />
-
-		{isZonesVisible && zoneShape && (
-			<MapboxGL.ShapeSource id="zones" shape={zoneShape}>
-				<MapboxGL.CircleLayer id="zone-circles" style={circleLayerStyle} />
-				<MapboxGL.SymbolLayer id="zone-labels" style={symbolLayerStyle} />
-			</MapboxGL.ShapeSource>
-		)}
-
-		{userCoordinate && (
-			<MapboxGL.PointAnnotation
-				id="user-location"
-				coordinate={userCoordinate}
-				anchor={{ x: 0.5, y: 0.5 }}
+const MapCanvasComponent = forwardRef<MapboxGL.MapView, MapCanvasProps>(
+	(
+		{
+			mapStyle,
+			cameraCoordinate,
+			zoomLevel,
+			onPress,
+			onLongPress,
+			zoneShape,
+			isZonesVisible,
+			userCoordinate,
+			cameraRef,
+			selectedCoordinate,
+			ghostMarkerType,
+			isSelectionMode,
+			onGhostMarkerConfirm,
+		},
+		ref
+	) => (
+		<View style={styles.container}>
+			<MapboxGL.MapView
+				ref={ref}
+				style={styles.map}
+				styleURL={mapStyle}
+				attributionEnabled={false}
+				logoEnabled={false}
+				onPress={(feature) => {
+					if (isSelectionMode) {
+						if (feature.geometry.type === "Point") {
+							const coordinates = feature.geometry.coordinates as Coordinates;
+							onGhostMarkerConfirm(coordinates);
+						}
+						return;
+					}
+					if (feature.geometry.type === "Point" && onPress) {
+						onPress({
+							geometry: {
+								coordinates: feature.geometry.coordinates as Coordinates,
+							},
+						});
+					}
+				}}
+				onLongPress={(feature) => {
+					if (isSelectionMode) return;
+					if (feature.geometry.type === "Point") {
+						onLongPress({
+							geometry: {
+								coordinates: feature.geometry.coordinates as Coordinates,
+							},
+						});
+					}
+				}}
 			>
-				<MapboxGL.Callout title="Você está aqui!" />
-			</MapboxGL.PointAnnotation>
-		)}
+				<MapboxGL.Camera
+					ref={cameraRef}
+					centerCoordinate={cameraCoordinate}
+					animationMode="flyTo"
+					animationDuration={1200}
+					zoomLevel={zoomLevel}
+				/>
 
-		{selectedCoordinate && (
-			<MapboxGL.PointAnnotation
-				id="selected-location"
-				coordinate={selectedCoordinate}
-				anchor={{ x: 0.5, y: 1 }}
-			>
-				<MarkerSvg width={32} height={48} />
-			</MapboxGL.PointAnnotation>
-		)}
-	</MapboxGL.MapView>
+				<MapboxGL.UserLocation visible androidRenderMode="gps" />
+
+				{isZonesVisible && zoneShape && (
+					<MapboxGL.ShapeSource id="zones" shape={zoneShape}>
+						<MapboxGL.CircleLayer id="zone-circles" style={circleLayerStyle} />
+						<MapboxGL.SymbolLayer id="zone-labels" style={symbolLayerStyle} />
+					</MapboxGL.ShapeSource>
+				)}
+
+				{userCoordinate && (
+					<MapboxGL.PointAnnotation
+						id="user-location"
+						coordinate={userCoordinate}
+						anchor={{ x: 0.5, y: 0.5 }}
+					>
+						<MapboxGL.Callout title="Você está aqui!" />
+					</MapboxGL.PointAnnotation>
+				)}
+
+				{selectedCoordinate && !isSelectionMode && (
+					<MapboxGL.PointAnnotation
+						id="selected-location"
+						coordinate={selectedCoordinate}
+						anchor={{ x: 0.5, y: 1 }}
+					>
+						<MarkerSvg width={32} height={48} />
+					</MapboxGL.PointAnnotation>
+				)}
+
+			</MapboxGL.MapView>
+
+			<SelectionOverlay
+				isSelectionMode={isSelectionMode}
+				zoneType={ghostMarkerType}
+			/>
+		</View>
+	)
 );
+
+MapCanvasComponent.displayName = "MapCanvas";
 
 const circleLayerStyle: MapboxGL.CircleLayerStyle = {
 	circleRadius: ["interpolate", ["linear"], ["zoom"], 5, 12, 10, 45, 14, 80],
@@ -143,6 +174,9 @@ const symbolLayerStyle: MapboxGL.SymbolLayerStyle = {
 };
 
 const styles = StyleSheet.create({
+	container: {
+		flex: 1,
+	},
 	map: {
 		flex: 1,
 	},
