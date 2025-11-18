@@ -657,16 +657,13 @@ export default function MapComponent() {
         hasPermission={hasPermission}
       />
 
-      <CenterOnUserButton
-        onPress={handleCenterOnUser}
-        isVisible={!!userCoordinate}
-      />
       {!pendingCoordinate && !isZonesSheetOpen && !isSelectionMode && (
         <MapTabBarContainer
           totalZones={zones.length}
           handleShowList={() => setZonesSheetOpen(true)}
           onCreateSafeZone={handleCreateSafeZone}
           onCreateDangerZone={handleCreateDangerZone}
+          onCenterUser={handleCenterOnUser}
         />
       )}
 

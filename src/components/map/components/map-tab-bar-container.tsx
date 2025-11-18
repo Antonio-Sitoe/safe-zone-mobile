@@ -1,11 +1,13 @@
-import { Pressable, Text, View } from 'react-native'
+import { Pressable, Text, TouchableOpacity, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { cn } from '@/lib/utils'
 
 interface MapTabBarContainerProps {
   totalZones: number
   handleShowList: () => void
   onCreateSafeZone: () => void
   onCreateDangerZone: () => void
+  onCenterUser: () => void
 }
 
 export function MapTabBarContainer({
@@ -13,24 +15,36 @@ export function MapTabBarContainer({
   handleShowList,
   onCreateSafeZone,
   onCreateDangerZone,
+  onCenterUser,
 }: MapTabBarContainerProps) {
   return (
     <View className="absolute left-0 right-0 bottom-0 bg-white rounded-t-3xl overflow-hidden shadow-lg">
       {/* Header Section */}
-      <View className="px-5 pt-5 pb-4 border-b border-gray-100">
-        <Text className="text-xl font-bold text-gray-900 mb-1">
-          Zonas no Mapa
-        </Text>
-        <Text className="text-sm text-gray-500 leading-5">
-          {totalZones === 0
-            ? 'Ainda não há zonas registadas. Adicione uma zona para começar.'
-            : `Existem ${totalZones} zona${
-                totalZones === 1 ? '' : 's'
-              } registadas no mapa.`}
-        </Text>
+      <View className="flex-row items-center justify-between">
+        <View className="px-5 pt-5 pb-4 border-b border-gray-100">
+          <Text className="text-xl font-bold text-gray-900 mb-1">
+            Zonas no Mapa
+          </Text>
+          <Text className="text-sm text-gray-500 leading-5">
+            {totalZones === 0
+              ? 'Ainda não há zonas registadas. Adicione uma zona para começar.'
+              : `Existem ${totalZones} zona${
+                  totalZones === 1 ? '' : 's'
+                } registadas no mapa.`}
+          </Text>
+        </View>
+        <TouchableOpacity
+          onPress={onCenterUser}
+          className={cn(
+            'rounded-full bg-slate-800/90 p-3 mr-4',
+            'border border-slate-600/40 shadow-lg shadow-black/40'
+          )}
+          activeOpacity={0.85}
+        >
+          <Ionicons name="locate" size={24} color="#10B981" />
+        </TouchableOpacity>
       </View>
 
-      {/* Cards Section */}
       <View className="flex-row px-4 py-3 gap-3">
         {/* Card: Criar Zona Segura */}
         <Pressable
@@ -87,7 +101,6 @@ export function MapTabBarContainer({
         </Pressable>
       </View>
 
-      {/* Bottom padding for safe area */}
       <View className="h-5" />
     </View>
   )
