@@ -1,22 +1,10 @@
 import React from "react";
-import { View, Text, TouchableOpacity, Alert, ScrollView } from "react-native";
-import {
-	Tag,
-	User,
-	Users,
-	Edit2,
-	LogOut,
-	MapPin,
-	Trash2,
-	MessageSquare,
-} from "lucide-react-native";
+import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { Tag, User, Edit2, LogOut, MessageSquare } from "lucide-react-native";
 
 import { router } from "expo-router";
-import { AxiosError } from "axios";
-import { useMutation } from "@tanstack/react-query";
 import { useAuthStore } from "@/contexts/auth-store";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { deactivateAccount } from "@/actions/auth";
 
 const MenuItem = ({
 	icon,
@@ -42,51 +30,6 @@ const MenuItem = ({
 
 export default function ProfileScreen() {
 	const { logout, user } = useAuthStore();
-
-	const deactivateAccountMutation = useMutation({
-		mutationFn: () => deactivateAccount(),
-		onSuccess: () => {
-			Alert.alert(
-				"Conta Desativada",
-				"Sua conta foi desativada com sucesso. Você será desconectado.",
-				[
-					{
-						text: "OK",
-						onPress: () => {
-							logout();
-						},
-					},
-				]
-			);
-		},
-		onError: (error) => {
-			const message =
-				error instanceof AxiosError
-					? error.response?.data?.message || "Erro ao desativar conta"
-					: "Erro ao desativar conta";
-			Alert.alert("Erro", message);
-		},
-	});
-
-	const handleDeactivateAccount = () => {
-		Alert.alert(
-			"Desativar Conta",
-			"Tem certeza que deseja desativar sua conta? Esta ação não pode ser desfeita e você precisará entrar em contato com o suporte para reativar sua conta.",
-			[
-				{
-					text: "Cancelar",
-					style: "cancel",
-				},
-				{
-					text: "Desativar",
-					style: "destructive",
-					onPress: () => {
-						deactivateAccountMutation.mutate();
-					},
-				},
-			]
-		);
-	};
 
 	return (
 		<SafeAreaView className="flex-1 bg-white">
@@ -123,17 +66,10 @@ export default function ProfileScreen() {
 						text="Editar Perfil"
 						onPress={() => router.push("/app/profile/edit")}
 					/>
-					<MenuItem icon={<MapPin size={22} color="#1D2C5E" />} text="Configurações De Alerta" />
 					<MenuItem icon={<Tag size={22} color="#1D2C5E" />} text="Dicas De Segurança" />
-					<MenuItem icon={<Users size={22} color="#1D2C5E" />} text="Contatos De Segurança" />
+
 					<MenuItem icon={<MessageSquare size={22} color="#1D2C5E" />} text="Sobre Nos" />
-					<MenuItem
-						onPress={handleDeactivateAccount}
-						touchableOpacityClassName="bg-[#fefefe] rounded-lg"
-						textClassName="text-orange-600"
-						icon={<Trash2 size={22} color="#EA580C" />}
-						text="Desativar Conta"
-					/>
+
 					<MenuItem
 						onPress={logout}
 						touchableOpacityClassName="bg-[#fefefe] rounded-lg"

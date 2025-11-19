@@ -13,13 +13,13 @@ import {
 } from "react-native";
 
 import { KeyboardAwareScrollView } from "react-native-keyboard-aware-scroll-view";
-import { X, Camera, Lock, Save } from "lucide-react-native";
+import { X, Camera, Lock, Save, Trash2 } from "lucide-react-native";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/contexts/auth-store";
-import { updateUser, changePassword, type UpdateUserData } from "@/actions/auth";
+import { updateUser, changePassword, type UpdateUserData, deactivateAccount } from "@/actions/auth";
 import { useMutation } from "@tanstack/react-query";
 import { Input, InputField } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,10 +30,11 @@ import {
 	type UpdateProfileFormData,
 	type ChangePasswordFormData,
 } from "@/utils/schemas/profile-schema";
+
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function EditProfileScreen() {
-	const { user, updateUser: updateUserStore } = useAuthStore();
+	const { user, updateUser: updateUserStore, logout } = useAuthStore();
 	const [showPasswordSection, setShowPasswordSection] = useState(false);
 	const [showCurrentPassword, setShowCurrentPassword] = useState(false);
 	const [showNewPassword, setShowNewPassword] = useState(false);
@@ -135,6 +136,51 @@ export default function EditProfileScreen() {
 			currentPassword: data.currentPassword,
 			newPassword: data.newPassword,
 		});
+	};
+
+	const deactivateAccountMutation = useMutation({
+		mutationFn: () => deactivateAccount(),
+		onSuccess: () => {
+			Alert.alert(
+				"Conta Desativada",
+				"Sua conta foi desativada com sucesso. Você será desconectado.",
+				[
+					{
+						text: "OK",
+						onPress: () => {
+							logout();
+						},
+					},
+				]
+			);
+		},
+		onError: (error) => {
+			const message =
+				error instanceof AxiosError
+					? error.response?.data?.message || "Erro ao desativar conta"
+					: "Erro ao desativar conta";
+			Alert.alert("Erro", message);
+		},
+	});
+
+	const handleDeactivateAccount = () => {
+		Alert.alert(
+			"Desativar Conta",
+			"Tem certeza que deseja desativar sua conta? Esta ação não pode ser desfeita e você precisará entrar em contato com o suporte para reativar sua conta.",
+			[
+				{
+					text: "Cancelar",
+					style: "cancel",
+				},
+				{
+					text: "Desativar",
+					style: "destructive",
+					onPress: () => {
+						deactivateAccountMutation.mutate();
+					},
+				},
+			]
+		);
 	};
 
 	return (
@@ -419,6 +465,16 @@ export default function EditProfileScreen() {
 									</View>
 								)}
 							</View>
+							<Button
+								variant="link"
+								onPress={handleDeactivateAccount}
+								className="rounded-lg h-14 w-full items-center justify-start pl-0"
+							>
+								<View className="flex-row justify-start items-start gap-2 pl-0">
+									<Trash2 size={22} color="red" />
+									<Text className="text-red-500 font-semibold text-sm">Desativar Conta</Text>
+								</View>
+							</Button>
 						</View>
 					</KeyboardAwareScrollView>
 				</TouchableWithoutFeedback>

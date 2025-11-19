@@ -32,7 +32,6 @@ export default function SettingsScreen() {
 					/>
 				</Section>
 
-				{/* Wearable Section */}
 				<Section title="Disparado pelo Wearable">
 					<SettingCard
 						icon={<Send size={20} color="white" />}
